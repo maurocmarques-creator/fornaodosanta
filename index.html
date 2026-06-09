@@ -1601,4 +1601,116 @@ function gerarRelatorioCentro(){
             <div style="font-size:12px;background:#1c1c2e;color:#fff;padding:7px 14px;border-radius:8px;font-weight:700">Resultado: <span class="${ccRes>=0?'saldo-pos':'saldo-neg'}">${R(ccRes)}</span></div>
           </div>
         </div>
-        <div 
+        <div class="panel-body nop tbl-wrap">
+          <table class="report-table">
+            <thead><tr>
+              <th>Vencimento</th><th>Tipo</th><th>Nº Doc</th><th>Fornecedor</th>
+              <th>Competência</th><th>Emissão</th><th>Vencimento</th><th>Liquidação</th>
+              <th>Banco</th><th>Observação</th>
+              <th class="text-right">Entradas</th><th class="text-right">Saídas</th><th>Status</th>
+            </tr></thead>
+            <tbody>
+              ${rows}
+              <tr class="saldo-row">
+                <td colspan="10" class="fw7" style="text-transform:uppercase;letter-spacing:.5px;font-size:11px">Subtotal — ${ccLabel}</td>
+                <td class="text-right">${R(ccRec)}</td>
+                <td class="text-right">${R(ccPag)}</td>
+                <td class="text-right ${ccRes>=0?'saldo-pos':'saldo-neg'} fw7">${R(ccRes)}</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    `;
+  });
+
+  // Total geral
+  const grandRes=grandRec-grandPag;
+  html+=`
+    <div class="panel" style="border:2px solid #1c1c2e">
+      <div class="panel-hd" style="background:#1c1c2e">
+        <h2 style="color:#fff;font-size:14px">💰 Total Geral</h2>
+        <div class="flex gap8" style="flex-wrap:wrap">
+          <div style="font-size:12px;background:#2c2c42;padding:7px 14px;border-radius:8px;color:#a0a0d0">Entradas: <strong class="saldo-pos">${R(grandRec)}</strong></div>
+          <div style="font-size:12px;background:#2c2c42;padding:7px 14px;border-radius:8px;color:#a0a0d0">Saídas: <strong class="saldo-neg">${R(grandPag)}</strong></div>
+          <div style="font-size:13px;background:#e05c1a;color:#fff;padding:7px 16px;border-radius:8px;font-weight:700">Resultado: ${R(grandRes)}</div>
+        </div>
+      </div>
+    </div>
+    <div class="inline-alert ia-info mt8"><span>ℹ️</span><div><strong>Legenda:</strong> 🟢 Verde = Entradas (A Receber) · 🟠 Laranja = Saídas (A Pagar) · Resultado = Entradas − Saídas por centro.</div></div>
+  `;
+
+  document.getElementById('cc-area').innerHTML=html;
+}
+
+// ============================================================
+// EXCLUIR
+// ============================================================
+function excluir(key,id,renderFn){
+  if(!confirm('Excluir este registro? Esta ação não pode ser desfeita.'))return;
+  db.set(key,db.get(key).filter(x=>x.id!==id));
+  if(typeof renderFn==='function')renderFn();
+  else if(typeof renderFn==='string')eval(renderFn+'()');
+}
+
+// ============================================================
+// FIREBASE CONFIG MODAL
+// ============================================================
+function openFbConfig() {
+  const cur = localStorage.getItem('__fb_cfg') || '';
+  document.getElementById('fb-cfg-input').value = cur ? JSON.stringify(JSON.parse(cur), null, 2) : '';
+  document.getElementById('modal-fb-config').classList.add('open');
+}
+function closeFbConfig() { document.getElementById('modal-fb-config').classList.remove('open'); }
+function saveFbConfig() {
+  const raw = document.getElementById('fb-cfg-input').value.trim();
+  if (!raw) {
+    localStorage.removeItem('__fb_cfg');
+    alert('Configuração removida. Recarregando em modo local...');
+    location.reload();
+    return;
+  }
+  try {
+    JSON.parse(raw);
+    localStorage.setItem('__fb_cfg', raw);
+    alert('Configuração salva! Recarregando para conectar ao Firebase...');
+    location.reload();
+  } catch(e) {
+    alert('JSON inválido. Verifique o texto colado:\n' + e.message);
+  }
+}
+
+// ============================================================
+// INIT
+// ============================================================
+(async () => {
+  document.getElementById('topbar-date').textContent=new Date().toLocaleDateString('pt-BR',{weekday:'long',day:'2-digit',month:'2-digit',year:'numeric'});
+  await initStorage();
+  seed();
+  updateSelects();
+  renderBancos();
+})();
+</script>
+<!-- ========== MODAL FIREBASE CONFIG ========== -->
+<div class="modal-overlay" id="modal-fb-config" onclick="if(event.target===this)closeFbConfig()">
+  <div class="modal" style="max-width:540px">
+    <div class="modal-hd">
+      <h2 style="font-size:15px;font-weight:700;color:#1c1c2e">☁️ Configurar Firebase</h2>
+      <button class="modal-close" onclick="closeFbConfig()">✕</button>
+    </div>
+    <div class="modal-body">
+      <p style="color:#555;font-size:13px;margin:0 0 14px">Cole abaixo o objeto <code>firebaseConfig</code> do Firebase (apenas o JSON, sem a linha <code>const firebaseConfig =</code>).</p>
+      <textarea id="fb-cfg-input" rows="9" style="width:100%;box-sizing:border-box;font-family:monospace;font-size:12px;border:1.5px solid #ddd;border-radius:8px;padding:10px;resize:vertical;background:#f8f8fc" placeholder='{"apiKey":"AIza...","authDomain":"seu-projeto.firebaseapp.com","projectId":"seu-projeto","storageBucket":"...","messagingSenderId":"...","appId":"..."}' spellcheck="false"></textarea>
+      <p style="font-size:11px;color:#aaa;margin:8px 0 0">Após salvar, a página será recarregada e conectará ao banco de dados na nuvem.</p>
+    </div>
+    <div class="modal-ft">
+      <button class="btn btn-ghost" onclick="closeFbConfig()">Cancelar</button>
+      <button class="btn btn-primary" onclick="saveFbConfig()">💾 Salvar e Conectar</button>
+    </div>
+  </div>
+</div>
+
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
+</body>
+</html>
