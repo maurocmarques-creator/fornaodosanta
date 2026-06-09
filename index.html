@@ -208,6 +208,7 @@ tbody tr:hover td{background:#fafafe}
     </div>
     <div class="topbar-right">
       <span class="muted" id="topbar-date"></span>
+      <span id="fb-status" onclick="openFbConfig()" title="Clique para configurar Firebase" style="cursor:pointer;font-size:12px;font-weight:600;color:#8080b0;padding:4px 10px;border-radius:20px;background:#f0f0f8;border:1px solid #e0e0f0">💾 Local</span>
       <button class="btn btn-primary btn-sm" id="topbar-btn" onclick="topbarAction()">
         <span id="topbar-btn-label">+ Novo Banco</span>
       </button>
@@ -621,14 +622,79 @@ tbody tr:hover td{background:#fafafe}
 'use strict';
 
 // ============================================================
-// STORAGE
+// FIREBASE CONFIG
+// Cole aqui o objeto firebaseConfig do seu projeto Firebase.
+// Se deixar null, o app funciona offline (localStorage apenas).
+// ============================================================
+let FIREBASE_CONFIG = null;
+try { const c = localStorage.getItem('__fb_cfg'); if(c) FIREBASE_CONFIG = JSON.parse(c); } catch{}
+
+// ============================================================
+// STORAGE — cache em memória + Firebase ou localStorage
 // ============================================================
 const K = { bancos:'fin_bancos', fornecedores:'fin_forn', centros:'fin_cc', receber:'fin_receber', pagar:'fin_pagar' };
+let _cache = { bancos:[], fornecedores:[], centros:[], receber:[], pagar:[] };
+let _fsdb = null; // Firestore instance
+let _fbReady = false;
+
 const db = {
-  get: k => { try { return JSON.parse(localStorage.getItem(K[k])) || [] } catch { return [] } },
-  set: (k,v) => localStorage.setItem(K[k], JSON.stringify(v)),
+  get: k => _cache[k] || [],
+  set: (k, v) => {
+    _cache[k] = v;
+    if (_fsdb) {
+      _fsdb.collection('pizzaos').doc('dados').set({ [k]: v }, { merge: true }).catch(console.error);
+    } else {
+      localStorage.setItem(K[k], JSON.stringify(v));
+    }
+  },
   nextId: arr => arr.length ? Math.max(0,...arr.map(x=>x.id||0))+1 : 1
 };
+
+async function initStorage() {
+  // Load from localStorage into cache (always, as fallback / offline seed)
+  Object.keys(_cache).forEach(k => {
+    try { const v = JSON.parse(localStorage.getItem(K[k])); if(v) _cache[k] = v; } catch{}
+  });
+
+  if (!FIREBASE_CONFIG) {
+    document.getElementById('fb-status').textContent = '💾 Local';
+    document.getElementById('fb-status').title = 'Dados salvos apenas neste navegador. Configure Firebase para sincronizar.';
+    return;
+  }
+
+  try {
+    document.getElementById('fb-status').textContent = '🔄 Conectando…';
+    if (!firebase.apps.length) firebase.initializeApp(FIREBASE_CONFIG);
+    _fsdb = firebase.firestore();
+
+    // Fetch initial data
+    const snap = await _fsdb.collection('pizzaos').doc('dados').get();
+    if (snap.exists) {
+      const data = snap.data();
+      Object.keys(_cache).forEach(k => { if (data[k] !== undefined) _cache[k] = data[k]; });
+    }
+    _fbReady = true;
+
+    // Real-time listener — updates cache + re-renders current screen on remote change
+    _fsdb.collection('pizzaos').doc('dados').onSnapshot(snap => {
+      if (!snap.metadata.hasPendingWrites && snap.exists) {
+        const data = snap.data();
+        Object.keys(_cache).forEach(k => { if (data[k] !== undefined) _cache[k] = data[k]; });
+        renderScreen(_cur);
+        updateSelects();
+      }
+    });
+
+    document.getElementById('fb-status').textContent = '☁️ Nuvem';
+    document.getElementById('fb-status').title = 'Sincronizado com Firebase. Dados compartilhados entre dispositivos.';
+    document.getElementById('fb-status').style.color = '#4caf50';
+  } catch(e) {
+    console.error('Firebase error:', e);
+    document.getElementById('fb-status').textContent = '⚠️ Offline';
+    document.getElementById('fb-status').title = 'Erro ao conectar Firebase: ' + e.message;
+    document.getElementById('fb-status').style.color = '#e05c1a';
+  }
+}
 
 // ============================================================
 // SEED
@@ -1535,65 +1601,4 @@ function gerarRelatorioCentro(){
             <div style="font-size:12px;background:#1c1c2e;color:#fff;padding:7px 14px;border-radius:8px;font-weight:700">Resultado: <span class="${ccRes>=0?'saldo-pos':'saldo-neg'}">${R(ccRes)}</span></div>
           </div>
         </div>
-        <div class="panel-body nop tbl-wrap">
-          <table class="report-table">
-            <thead><tr>
-              <th>Vencimento</th><th>Tipo</th><th>Nº Doc</th><th>Fornecedor</th>
-              <th>Competência</th><th>Emissão</th><th>Vencimento</th><th>Liquidação</th>
-              <th>Banco</th><th>Observação</th>
-              <th class="text-right">Entradas</th><th class="text-right">Saídas</th><th>Status</th>
-            </tr></thead>
-            <tbody>
-              ${rows}
-              <tr class="saldo-row">
-                <td colspan="10" class="fw7" style="text-transform:uppercase;letter-spacing:.5px;font-size:11px">Subtotal — ${ccLabel}</td>
-                <td class="text-right">${R(ccRec)}</td>
-                <td class="text-right">${R(ccPag)}</td>
-                <td class="text-right ${ccRes>=0?'saldo-pos':'saldo-neg'} fw7">${R(ccRes)}</td>
-              </tr>
-            </tbody>
-          </table>
-        </div>
-      </div>
-    `;
-  });
-
-  // Total geral
-  const grandRes=grandRec-grandPag;
-  html+=`
-    <div class="panel" style="border:2px solid #1c1c2e">
-      <div class="panel-hd" style="background:#1c1c2e">
-        <h2 style="color:#fff;font-size:14px">💰 Total Geral</h2>
-        <div class="flex gap8" style="flex-wrap:wrap">
-          <div style="font-size:12px;background:#2c2c42;padding:7px 14px;border-radius:8px;color:#a0a0d0">Entradas: <strong class="saldo-pos">${R(grandRec)}</strong></div>
-          <div style="font-size:12px;background:#2c2c42;padding:7px 14px;border-radius:8px;color:#a0a0d0">Saídas: <strong class="saldo-neg">${R(grandPag)}</strong></div>
-          <div style="font-size:13px;background:#e05c1a;color:#fff;padding:7px 16px;border-radius:8px;font-weight:700">Resultado: ${R(grandRes)}</div>
-        </div>
-      </div>
-    </div>
-    <div class="inline-alert ia-info mt8"><span>ℹ️</span><div><strong>Legenda:</strong> 🟢 Verde = Entradas (A Receber) · 🟠 Laranja = Saídas (A Pagar) · Resultado = Entradas − Saídas por centro.</div></div>
-  `;
-
-  document.getElementById('cc-area').innerHTML=html;
-}
-
-// ============================================================
-// EXCLUIR
-// ============================================================
-function excluir(key,id,renderFn){
-  if(!confirm('Excluir este registro? Esta ação não pode ser desfeita.'))return;
-  db.set(key,db.get(key).filter(x=>x.id!==id));
-  if(typeof renderFn==='function')renderFn();
-  else if(typeof renderFn==='string')eval(renderFn+'()');
-}
-
-// ============================================================
-// INIT
-// ============================================================
-seed();
-updateSelects();
-document.getElementById('topbar-date').textContent=new Date().toLocaleDateString('pt-BR',{weekday:'long',day:'2-digit',month:'2-digit',year:'numeric'});
-renderBancos();
-</script>
-</body>
-</html>
+        <div 
