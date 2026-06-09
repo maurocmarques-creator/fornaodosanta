@@ -441,6 +441,7 @@ tbody tr:hover td{background:#fafafe}
       </div>
       <div class="form-row cols2">
         <div class="fg"><label>Código do banco</label><input id="banco-codigo" placeholder="Ex: 237"></div>
+        <div class="fg"><label>Data do saldo inicial</label><input id="banco-datasaldo" type="date"></div>
         <div class="fg"><label>Ativo</label><select id="banco-ativo"><option value="1">Sim</option><option value="0">Não</option></select></div>
       </div>
     </div>
@@ -915,7 +916,7 @@ function renderBancos() {
   document.getElementById('tbl-bancos').innerHTML=bancos.length?bancos.map(b=>`
     <tr>
       <td class="fw7">${b.nome}</td><td>${b.agencia||'—'}</td><td>${b.conta||'—'}</td>
-      <td class="text-right">${R(b.saldoInicial)}</td>
+      <td class="text-right">${R(b.saldoInicial)}</td><td class="nowrap" style="font-size:12px;color:#666">${b.dataSaldo?b.dataSaldo.split('-').reverse().join('/'):'—'}</td>
       <td class="text-right fw7" style="color:${saldoAtualBanco(b)>=0?'#1a7a4a':'#c03020'}">${R(saldoAtualBanco(b))}</td>
       <td class="nowrap">
         <button class="btn btn-ghost btn-sm" onclick="editBanco(${b.id})">✏️ Editar</button>
@@ -932,6 +933,7 @@ function editBanco(id){
   document.getElementById('banco-conta').value=b.conta||'';
   document.getElementById('banco-codigo').value=b.codigo||'';
   document.getElementById('banco-saldo').value=fmtValor(b.saldoInicial);
+  document.getElementById('banco-datasaldo').value=b.dataSaldo||'';
   document.getElementById('banco-ativo').value=b.ativo;
   document.getElementById('modal-banco-title').textContent='🏦 Editar Banco';
   openModal('modal-banco');
@@ -941,7 +943,7 @@ function salvarBanco(){
   if(!nome){alert('Informe o nome.');return;}
   const bancos=db.get('bancos');
   const editId=parseInt(document.getElementById('banco-edit-id').value)||0;
-  const obj={nome,agencia:document.getElementById('banco-agencia').value.trim(),conta:document.getElementById('banco-conta').value.trim(),codigo:document.getElementById('banco-codigo').value.trim(),saldoInicial:parseValor(document.getElementById('banco-saldo').value),ativo:parseInt(document.getElementById('banco-ativo').value)};
+  const obj={nome,agencia:document.getElementById('banco-agencia').value.trim(),conta:document.getElementById('banco-conta').value.trim(),codigo:document.getElementById('banco-codigo').value.trim(),saldoInicial:parseValor(document.getElementById('banco-saldo').value),dataSaldo:document.getElementById('banco-datasaldo').value,ativo:parseInt(document.getElementById('banco-ativo').value)};
   if(editId){Object.assign(bancos.find(x=>x.id===editId)||{},{...obj,id:editId});}
   else{bancos.push({...obj,id:db.nextId(bancos)});}
   db.set('bancos',bancos);
