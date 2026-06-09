@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>PizzaOS — Módulo Financeiro</title>
 <style>
-*{box-sizing:border-box;margin:0;padding:0}
+*{box-sizing:border-box;margin:0;padding:0}h
 body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;background:#f2f3f7;color:#1c1c2e;display:flex;height:100vh;overflow:hidden;font-size:14px}
 
 /* SIDEBAR */
@@ -702,6 +702,7 @@ async function initStorage() {
 // SEED
 // ============================================================
 function seed() {
+  if (localStorage.getItem('__seeded')) return;
   if (!db.get('bancos').length) db.set('bancos',[
     {id:1,nome:'Bradesco — Conta PJ',agencia:'1234-5',conta:'98765-4',codigo:'237',saldoInicial:5000,ativo:1},
     {id:2,nome:'Nubank — Conta PJ',agencia:'0001',conta:'12345678-9',codigo:'260',saldoInicial:2500,ativo:1}
@@ -728,6 +729,7 @@ function seed() {
     {id:2,doc:'000000000000011',comp:'06/2026',valor:202,emissao:'07/06/2026',vencimento:'12/06/2026',liquidacao:'',fornecedor:2,banco:1,centro:3,obs:'Crédito cartão — lote',status:'pendente'},
     {id:3,doc:'000000000000012',comp:'05/2026',valor:4312,emissao:'31/05/2026',vencimento:'31/05/2026',liquidacao:'31/05/2026',fornecedor:2,banco:1,centro:3,obs:'Receitas de vendas maio',status:'recebido'}
   ]);
+  localStorage.setItem('__seeded','1');
 }
 
 // ============================================================
