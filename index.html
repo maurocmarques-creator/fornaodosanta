@@ -1,0 +1,1599 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>PizzaOS — Módulo Financeiro</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;background:#f2f3f7;color:#1c1c2e;display:flex;height:100vh;overflow:hidden;font-size:14px}
+
+/* SIDEBAR */
+#sidebar{width:240px;min-width:240px;background:#1c1c2e;display:flex;flex-direction:column;overflow-y:auto;flex-shrink:0}
+.sb-logo{padding:20px 20px 16px;border-bottom:1px solid #2c2c42}
+.sb-logo .mark{font-size:17px;font-weight:700;color:#fff;letter-spacing:-.3px}
+.sb-logo .sub{font-size:10px;color:#6060a0;margin-top:3px;text-transform:uppercase;letter-spacing:.8px}
+.sb-group{padding:14px 0 6px}
+.sb-group-label{font-size:9px;font-weight:700;letter-spacing:1.4px;text-transform:uppercase;color:#e05c1a;padding:4px 20px 8px;border-left:3px solid #e05c1a}
+.sb-item{display:flex;align-items:center;gap:10px;padding:9px 20px;cursor:pointer;color:#8080b8;font-size:13px;font-weight:500;transition:.12s;border-left:3px solid transparent;user-select:none}
+.sb-item:hover{background:#242440;color:#c8c8e8}
+.sb-item.active{background:#242440;color:#fff;border-left-color:#e05c1a}
+.sb-item .ic{width:18px;text-align:center;font-size:14px}
+.sb-item .sb-badge{margin-left:auto;background:#e05c1a;color:#fff;font-size:10px;font-weight:700;border-radius:10px;padding:1px 7px;min-width:20px;text-align:center}
+
+/* MAIN */
+#main{flex:1;display:flex;flex-direction:column;overflow:hidden;min-width:0}
+.topbar{background:#fff;border-bottom:1px solid #e8e8f2;padding:0 28px;height:54px;display:flex;align-items:center;justify-content:space-between;flex-shrink:0}
+.topbar-left{display:flex;align-items:center;gap:10px}
+.topbar h1{font-size:15px;font-weight:600;color:#1c1c2e}
+.topbar .breadcrumb{font-size:12px;color:#aaa}
+.topbar-right{display:flex;gap:8px;align-items:center}
+#content{flex:1;overflow-y:auto;padding:24px 28px}
+
+/* SCREENS */
+.screen{display:none}.screen.active{display:block}
+
+/* KPI CARDS */
+.kpi-row{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin-bottom:22px}
+.kpi{background:#fff;border:1px solid #e8e8f2;border-radius:10px;padding:16px 20px}
+.kpi .lbl{font-size:11px;color:#999;font-weight:600;text-transform:uppercase;letter-spacing:.5px}
+.kpi .val{font-size:24px;font-weight:700;color:#1c1c2e;margin-top:5px;letter-spacing:-.5px}
+.kpi .hint{font-size:11px;color:#bbb;margin-top:3px}
+.kpi.green .val{color:#1a7a4a}.kpi.red .val{color:#c03020}.kpi.orange .val{color:#c05010}
+.kpi.warn{border-color:#ffd0b0;background:#fff8f4}
+
+/* PANEL */
+.panel{background:#fff;border:1px solid #e8e8f2;border-radius:10px;overflow:hidden;margin-bottom:20px}
+.panel-hd{padding:14px 20px;border-bottom:1px solid #f0f0f8;display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap}
+.panel-hd h2{font-size:13px;font-weight:600;color:#1c1c2e}
+.panel-hd .hd-right{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+.panel-body{padding:16px 20px}
+.panel-body.nop{padding:0}
+
+/* TABLES */
+.tbl-wrap{overflow-x:auto}
+table{width:100%;border-collapse:collapse;font-size:12.5px}
+thead th{background:#f8f8fc;color:#999;font-weight:700;text-transform:uppercase;font-size:10.5px;letter-spacing:.5px;padding:10px 14px;text-align:left;border-bottom:1px solid #eeeef8;white-space:nowrap}
+tbody td{padding:11px 14px;border-bottom:1px solid #f4f4fa;color:#2c2c40;vertical-align:middle}
+tbody tr:last-child td{border-bottom:none}
+tbody tr:hover td{background:#fafafe}
+.tbl-empty{text-align:center;padding:40px 0;color:#bbb;font-size:13px}
+.text-right{text-align:right!important}
+.nowrap{white-space:nowrap}
+
+/* BADGES */
+.badge{display:inline-block;padding:3px 10px;border-radius:20px;font-size:11px;font-weight:600;white-space:nowrap}
+.b-green{background:#d4f5e5;color:#0c6e3a}
+.b-red{background:#fde0d8;color:#b02010}
+.b-yellow{background:#fff3cc;color:#8a6000}
+.b-blue{background:#dce8ff;color:#1050a0}
+.b-gray{background:#f0f0f8;color:#777}
+.b-orange{background:#ffe8d6;color:#c05010}
+
+/* BUTTONS */
+.btn{padding:8px 16px;border-radius:8px;font-size:12px;font-weight:600;cursor:pointer;border:none;transition:.15s;display:inline-flex;align-items:center;gap:6px;white-space:nowrap}
+.btn:disabled{opacity:.5;cursor:not-allowed}
+.btn-primary{background:#e05c1a;color:#fff}.btn-primary:hover:not(:disabled){background:#c84e10}
+.btn-ghost{background:#f2f2f8;color:#444;border:1px solid #e0e0ee}.btn-ghost:hover{background:#e8e8f4}
+.btn-sm{padding:5px 11px;font-size:11px;border-radius:6px}
+.btn-danger{background:#fff0ec;color:#c03020;border:1px solid #ffd4cc}.btn-danger:hover{background:#ffe4dc}
+.btn-success{background:#eafaf1;color:#0c6e3a;border:1px solid #b8efd4}.btn-success:hover{background:#d4f5e5}
+.btn-info{background:#e8f4ff;color:#1050a0;border:1px solid #c0d8f8}.btn-info:hover{background:#d0e8ff}
+.btn-warn{background:#fff8e1;color:#8a6000;border:1px solid #ffe082}
+
+/* FORMS */
+.form-row{display:grid;gap:14px;margin-bottom:14px}
+.form-row.cols2{grid-template-columns:1fr 1fr}
+.form-row.cols3{grid-template-columns:1fr 1fr 1fr}
+.form-row.cols4{grid-template-columns:1fr 1fr 1fr 1fr}
+.fg{display:flex;flex-direction:column;gap:5px}
+.fg label{font-size:11px;font-weight:700;color:#666;text-transform:uppercase;letter-spacing:.4px}
+.fg input,.fg select,.fg textarea{padding:9px 12px;border:1.5px solid #dde0ee;border-radius:8px;font-size:13px;color:#1c1c2e;background:#fff;outline:none;transition:.15s;font-family:inherit}
+.fg input:focus,.fg select:focus,.fg textarea:focus{border-color:#e05c1a;box-shadow:0 0 0 3px rgba(224,92,26,.08)}
+.fg textarea{resize:vertical;min-height:70px}
+.fg .hint{font-size:10px;color:#bbb;margin-top:2px}
+.fg .char-count{font-size:10px;color:#bbb;text-align:right;margin-top:2px}
+.field-req::after{content:'*';color:#e03020;margin-left:2px}
+.form-divider{font-size:11px;font-weight:700;color:#aaa;text-transform:uppercase;letter-spacing:.8px;padding:10px 0 6px;border-bottom:1px solid #f0f0f8;margin-bottom:14px}
+
+/* SEARCHABLE SELECT */
+.ss-wrap{position:relative}
+.ss-input-box{position:relative;display:flex;align-items:center}
+.ss-input{width:100%;padding:9px 34px 9px 12px;border:1.5px solid #dde0ee;border-radius:8px;font-size:13px;color:#1c1c2e;background:#fff;outline:none;transition:.15s;font-family:inherit;cursor:pointer}
+.ss-input:focus{border-color:#e05c1a;box-shadow:0 0 0 3px rgba(224,92,26,.08)}
+.ss-arrow{position:absolute;right:10px;font-size:11px;color:#aaa;pointer-events:none;transition:.15s}
+.ss-wrap.open .ss-arrow{transform:rotate(180deg);color:#e05c1a}
+.ss-input.has-val{font-weight:600;color:#1c1c2e}
+.ss-dropdown{display:none;position:absolute;top:calc(100% + 4px);left:0;right:0;background:#fff;border:1.5px solid #e05c1a;border-radius:10px;box-shadow:0 8px 24px rgba(0,0,0,.12);z-index:500;overflow:hidden}
+.ss-wrap.open .ss-dropdown{display:block}
+.ss-search-box{padding:10px 12px;border-bottom:1px solid #f0f0f8}
+.ss-search{width:100%;padding:8px 12px;border:1.5px solid #dde0ee;border-radius:7px;font-size:13px;outline:none;font-family:inherit}
+.ss-search:focus{border-color:#e05c1a}
+.ss-list{max-height:200px;overflow-y:auto}
+.ss-opt{padding:10px 14px;cursor:pointer;font-size:13px;color:#2c2c40;border-bottom:1px solid #f8f8fc;transition:.1s}
+.ss-opt:last-child{border-bottom:none}
+.ss-opt:hover{background:#fff8f4;color:#e05c1a}
+.ss-opt.selected{background:#fff0e8;color:#e05c1a;font-weight:600}
+.ss-opt.empty{color:#bbb;cursor:default;font-style:italic}
+.ss-opt.empty:hover{background:transparent;color:#bbb}
+::-webkit-scrollbar{width:4px;height:4px}
+::-webkit-scrollbar-track{background:transparent}
+::-webkit-scrollbar-thumb{background:#ddd;border-radius:4px}
+
+/* MODAL */
+.modal-overlay{display:none;position:fixed;inset:0;background:rgba(10,10,30,.5);z-index:999;align-items:center;justify-content:center}
+.modal-overlay.open{display:flex}
+.modal{background:#fff;border-radius:12px;max-width:95vw;max-height:92vh;display:flex;flex-direction:column;box-shadow:0 24px 80px rgba(0,0,0,.2)}
+.modal-hd{padding:18px 24px;border-bottom:1px solid #f0f0f8;display:flex;align-items:center;justify-content:space-between;flex-shrink:0}
+.modal-hd h3{font-size:15px;font-weight:700;color:#1c1c2e}
+.modal-close{background:none;border:none;font-size:22px;cursor:pointer;color:#ccc;line-height:1;padding:0 2px}.modal-close:hover{color:#888}
+.modal-body{padding:22px 24px;overflow-y:auto;flex:1}
+.modal-ft{padding:14px 24px;border-top:1px solid #f0f0f8;display:flex;justify-content:flex-end;gap:8px;flex-shrink:0}
+
+/* CONFIRM BOX */
+.confirm-box{background:#fff8f0;border:1px solid #ffd0b0;border-radius:8px;padding:14px 16px;font-size:13px;margin-bottom:14px}
+
+/* ALERTS */
+.inline-alert{display:flex;align-items:flex-start;gap:10px;padding:12px 16px;border-radius:8px;font-size:12.5px;margin-bottom:14px}
+.ia-warn{background:#fff8e1;border-left:3px solid #ffc107;color:#7a5000}
+.ia-ok{background:#eafaf1;border-left:3px solid #22b573;color:#0c6e3a}
+.ia-info{background:#e8f4ff;border-left:3px solid #2196f3;color:#0d4e8a}
+.ia-danger{background:#fff0ec;border-left:3px solid #e05c1a;color:#8b2000}
+
+/* FLUXO TABLE */
+.fluxo-table thead th{background:#1c1c2e;color:#a0a0d0;font-size:10px}
+.fluxo-row-entrada td{background:#f0fdf6}
+.fluxo-row-saida td{background:#fdf5f0}
+.fluxo-row-saldo td{background:#f8f8fc;font-weight:700;font-size:12px}
+.fluxo-row-negativo td{background:#fff0ec!important}
+.fluxo-row-negativo td.saldo-col{color:#c03020!important;font-weight:700}
+.saldo-pos{color:#1a7a4a;font-weight:700}
+.saldo-neg{color:#c03020;font-weight:700}
+.saldo-neutral{color:#1c1c2e}
+.fluxo-abertura td{background:#1c1c2e;color:#fff;font-weight:700}
+
+/* REPORT */
+.report-table thead th{background:#1c1c2e;color:#c8c8f0;border-bottom:none;font-size:10px}
+.report-table tbody tr.cr td{background:#f0fdf6}
+.report-table tbody tr.db td{background:#fdf5f0}
+.report-table tbody tr.saldo-row td{background:#1c1c2e;color:#fff;font-weight:700;font-size:13px}
+
+/* UTILS */
+.flex{display:flex;align-items:center}.flex-between{display:flex;align-items:center;justify-content:space-between}
+.gap8{gap:8px}.gap12{gap:12px}
+.mt8{margin-top:8px}.mt14{margin-top:14px}.mt20{margin-top:20px}
+.mb8{margin-bottom:8px}.mb14{margin-bottom:14px}
+.fw7{font-weight:700}.muted{color:#aaa;font-size:12px}
+
+@media print{
+  #sidebar,.topbar,.modal-overlay,.report-filter .btn,.btn{display:none!important}
+  body{overflow:visible;display:block}#main{overflow:visible}#content{overflow:visible;padding:0}
+  .screen{display:block!important}.screen:not(.active){display:none!important}
+}
+</style>
+</head>
+<body>
+
+<!-- ========== SIDEBAR ========== -->
+<nav id="sidebar">
+  <div class="sb-logo">
+    <div class="mark">🍕 PizzaOS</div>
+    <div class="sub">Módulo Financeiro</div>
+  </div>
+  <div class="sb-group">
+    <div class="sb-group-label">Cadastros</div>
+    <div class="sb-item active" onclick="nav('bancos',this)"><span class="ic">🏦</span> Bancos</div>
+    <div class="sb-item" onclick="nav('fornecedores',this)"><span class="ic">🏢</span> Fornecedores</div>
+    <div class="sb-item" onclick="nav('centros',this)"><span class="ic">🏷️</span> Centro de Custo</div>
+  </div>
+  <div class="sb-group">
+    <div class="sb-group-label">Lançamentos</div>
+    <div class="sb-item" id="nav-receber" onclick="nav('receber',this)"><span class="ic">📥</span> Contas a Receber <span class="sb-badge" id="badge-receber" style="display:none">0</span></div>
+    <div class="sb-item" id="nav-pagar" onclick="nav('pagar',this)"><span class="ic">📤</span> Contas a Pagar <span class="sb-badge" id="badge-pagar" style="display:none">0</span></div>
+  </div>
+  <div class="sb-group">
+    <div class="sb-group-label">Relatórios</div>
+    <div class="sb-item" onclick="nav('fluxo',this)"><span class="ic">📈</span> Fluxo Projetado</div>
+    <div class="sb-item" onclick="nav('conciliacao',this)"><span class="ic">📊</span> Conciliação Bancária</div>
+    <div class="sb-item" onclick="nav('centrocusto',this)"><span class="ic">🏷️</span> Por Centro de Custo</div>
+  </div>
+</nav>
+
+<!-- ========== MAIN ========== -->
+<div id="main">
+  <div class="topbar">
+    <div class="topbar-left">
+      <h1 id="page-title">Bancos</h1>
+      <span class="breadcrumb" id="page-breadcrumb">Cadastros › Bancos</span>
+    </div>
+    <div class="topbar-right">
+      <span class="muted" id="topbar-date"></span>
+      <button class="btn btn-primary btn-sm" id="topbar-btn" onclick="topbarAction()">
+        <span id="topbar-btn-label">+ Novo Banco</span>
+      </button>
+    </div>
+  </div>
+
+  <div id="content">
+
+    <!-- BANCOS -->
+    <div class="screen active" id="s-bancos">
+      <div class="kpi-row" id="kpi-bancos" style="grid-template-columns:repeat(3,1fr)"></div>
+      <div class="panel">
+        <div class="panel-hd"><h2>Bancos cadastrados</h2></div>
+        <div class="panel-body nop tbl-wrap">
+          <table><thead><tr><th>Nome / Banco</th><th>Agência</th><th>Conta</th><th>Saldo inicial</th><th>Saldo atual</th><th style="width:120px"></th></tr></thead>
+          <tbody id="tbl-bancos"></tbody></table>
+        </div>
+      </div>
+    </div>
+
+    <!-- FORNECEDORES -->
+    <div class="screen" id="s-fornecedores">
+      <div class="panel">
+        <div class="panel-hd">
+          <h2>Fornecedores cadastrados</h2>
+          <div class="hd-right">
+            <input id="search-forn" placeholder="🔍 Buscar..." oninput="renderFornecedores()" style="padding:7px 12px;border:1.5px solid #dde0ee;border-radius:8px;font-size:12px;width:220px;outline:none">
+          </div>
+        </div>
+        <div class="panel-body nop tbl-wrap">
+          <table><thead><tr><th>Nome / Razão social</th><th>Tipo</th><th>CNPJ / CPF</th><th>Contato</th><th style="width:120px"></th></tr></thead>
+          <tbody id="tbl-fornecedores"></tbody></table>
+        </div>
+      </div>
+    </div>
+
+    <!-- CENTROS DE CUSTO -->
+    <div class="screen" id="s-centros">
+      <div class="panel">
+        <div class="panel-hd"><h2>Centros de custo</h2></div>
+        <div class="panel-body nop tbl-wrap">
+          <table><thead><tr><th>Código</th><th>Descrição</th><th>Tipo</th><th>Ativo</th><th style="width:120px"></th></tr></thead>
+          <tbody id="tbl-centros"></tbody></table>
+        </div>
+      </div>
+    </div>
+
+    <!-- CONTAS A RECEBER -->
+    <div class="screen" id="s-receber">
+      <div class="kpi-row" id="kpi-receber"></div>
+      <div class="panel">
+        <div class="panel-hd">
+          <h2>Contas a receber</h2>
+          <div class="hd-right">
+            <select id="filter-receber-status" onchange="renderReceber()" style="padding:7px 10px;border:1.5px solid #dde0ee;border-radius:8px;font-size:12px;outline:none">
+              <option value="">Todos os status</option><option value="pendente">Pendente</option><option value="recebido">Recebido</option><option value="vencido">Vencido</option>
+            </select>
+            <select id="filter-receber-comp" onchange="renderReceber()" style="padding:7px 10px;border:1.5px solid #dde0ee;border-radius:8px;font-size:12px;outline:none">
+              <option value="">Todas competências</option>
+            </select>
+          </div>
+        </div>
+        <div class="panel-body nop tbl-wrap">
+          <table><thead><tr><th>Nº Doc</th><th>Fornecedor / Cliente</th><th>Competência</th><th>Emissão</th><th>Vencimento</th><th>Liquidação</th><th>Banco</th><th>C. Custo</th><th class="text-right">Valor</th><th>Status</th><th style="width:130px"></th></tr></thead>
+          <tbody id="tbl-receber"></tbody></table>
+        </div>
+      </div>
+    </div>
+
+    <!-- CONTAS A PAGAR -->
+    <div class="screen" id="s-pagar">
+      <div class="kpi-row" id="kpi-pagar"></div>
+      <div class="panel">
+        <div class="panel-hd">
+          <h2>Contas a pagar</h2>
+          <div class="hd-right">
+            <select id="filter-pagar-status" onchange="renderPagar()" style="padding:7px 10px;border:1.5px solid #dde0ee;border-radius:8px;font-size:12px;outline:none">
+              <option value="">Todos os status</option><option value="pendente">Pendente</option><option value="pago">Pago</option><option value="vencido">Vencido</option>
+            </select>
+            <select id="filter-pagar-comp" onchange="renderPagar()" style="padding:7px 10px;border:1.5px solid #dde0ee;border-radius:8px;font-size:12px;outline:none">
+              <option value="">Todas competências</option>
+            </select>
+          </div>
+        </div>
+        <div class="panel-body nop tbl-wrap">
+          <table><thead><tr><th>Nº Doc</th><th>Fornecedor</th><th>Competência</th><th>Emissão</th><th>Vencimento</th><th>Liquidação</th><th>Banco</th><th>C. Custo</th><th class="text-right">Valor</th><th>Status</th><th style="width:130px"></th></tr></thead>
+          <tbody id="tbl-pagar"></tbody></table>
+        </div>
+      </div>
+    </div>
+
+    <!-- FLUXO DE CAIXA PROJETADO -->
+    <div class="screen" id="s-fluxo">
+      <div class="kpi-row" id="kpi-fluxo"></div>
+
+      <!-- Filtros -->
+      <div class="panel">
+        <div class="panel-hd"><h2>Filtros</h2></div>
+        <div class="panel-body">
+          <div class="form-row cols4">
+            <div class="fg">
+              <label>Data inicial</label>
+              <input type="text" id="fluxo-di" placeholder="dd/mm/aaaa" maxlength="10" oninput="maskDate(this)">
+            </div>
+            <div class="fg">
+              <label>Data final</label>
+              <input type="text" id="fluxo-df" placeholder="dd/mm/aaaa" maxlength="10" oninput="maskDate(this)">
+            </div>
+            <div class="fg">
+              <label>Banco (todos se vazio)</label>
+              <select id="fluxo-banco" style="padding:9px 12px;border:1.5px solid #dde0ee;border-radius:8px;font-size:13px;outline:none">
+                <option value="">Todos os bancos</option>
+              </select>
+            </div>
+            <div class="fg">
+              <label>Mostrar</label>
+              <select id="fluxo-filtro" style="padding:9px 12px;border:1.5px solid #dde0ee;border-radius:8px;font-size:13px;outline:none">
+                <option value="pendente">Apenas pendentes</option>
+                <option value="todos">Todos (inc. liquidados)</option>
+              </select>
+            </div>
+          </div>
+          <div class="flex gap8">
+            <button class="btn btn-primary" onclick="renderFluxo()">📈 Gerar projeção</button>
+            <button class="btn btn-ghost" onclick="window.print()">🖨️ Imprimir</button>
+          </div>
+        </div>
+      </div>
+
+      <div id="fluxo-area"></div>
+    </div>
+
+    <!-- CONCILIAÇÃO BANCÁRIA -->
+    <div class="screen" id="s-conciliacao">
+      <div class="panel">
+        <div class="panel-hd"><h2>Filtros do relatório</h2></div>
+        <div class="panel-body">
+          <div class="form-row cols4">
+            <div class="fg"><label>Banco</label>
+              <select id="rel-banco" style="padding:9px 12px;border:1.5px solid #dde0ee;border-radius:8px;font-size:13px;outline:none"><option value="">— Selecione —</option></select>
+            </div>
+            <div class="fg"><label>Data inicial</label>
+              <input type="text" id="rel-di" placeholder="dd/mm/aaaa" maxlength="10" oninput="maskDate(this)">
+            </div>
+            <div class="fg"><label>Data final</label>
+              <input type="text" id="rel-df" placeholder="dd/mm/aaaa" maxlength="10" oninput="maskDate(this)">
+            </div>
+            <div class="fg"><label>Competência (opcional)</label>
+              <input type="text" id="rel-comp" placeholder="mm/aaaa" maxlength="7" oninput="maskComp(this)">
+            </div>
+          </div>
+          <div class="flex gap8">
+            <button class="btn btn-primary" onclick="gerarRelatorio()">📊 Gerar relatório</button>
+            <button class="btn btn-ghost" onclick="window.print()">🖨️ Imprimir</button>
+          </div>
+        </div>
+      </div>
+      <div id="relatorio-area"></div>
+    </div>
+
+    <!-- RELATÓRIO POR CENTRO DE CUSTO -->
+    <div class="screen" id="s-centrocusto">
+      <div class="kpi-row" id="kpi-cc"></div>
+      <div class="panel">
+        <div class="panel-hd"><h2>Filtros</h2></div>
+        <div class="panel-body">
+          <div class="form-row cols4">
+            <div class="fg">
+              <label>Data inicial (vencimento)</label>
+              <input type="text" id="cc-di" placeholder="dd/mm/aaaa" maxlength="10" oninput="maskDate(this)">
+            </div>
+            <div class="fg">
+              <label>Data final (vencimento)</label>
+              <input type="text" id="cc-df" placeholder="dd/mm/aaaa" maxlength="10" oninput="maskDate(this)">
+            </div>
+            <div class="fg">
+              <label>Competência</label>
+              <input type="text" id="cc-comp" placeholder="mm/aaaa" maxlength="7" oninput="maskComp(this)">
+            </div>
+            <div class="fg">
+              <label>Status</label>
+              <select id="cc-status" style="padding:9px 12px;border:1.5px solid #dde0ee;border-radius:8px;font-size:13px;outline:none">
+                <option value="">Todos</option>
+                <option value="pendente">Pendente</option>
+                <option value="pago">Pago</option>
+                <option value="recebido">Recebido</option>
+                <option value="vencido">Vencido</option>
+              </select>
+            </div>
+          </div>
+          <div class="form-row cols2">
+            <div class="fg">
+              <label>Centro de custo</label>
+              <select id="cc-centro-fil" style="padding:9px 12px;border:1.5px solid #dde0ee;border-radius:8px;font-size:13px;outline:none">
+                <option value="">Todos os centros</option>
+              </select>
+            </div>
+            <div class="fg">
+              <label>Fornecedor / Pagador</label>
+              <select id="cc-forn-fil" style="padding:9px 12px;border:1.5px solid #dde0ee;border-radius:8px;font-size:13px;outline:none">
+                <option value="">Todos os fornecedores</option>
+              </select>
+            </div>
+          </div>
+          <div class="flex gap8">
+            <button class="btn btn-primary" onclick="gerarRelatorioCentro()">🏷️ Gerar relatório</button>
+            <button class="btn btn-ghost" onclick="window.print()">🖨️ Imprimir</button>
+          </div>
+        </div>
+      </div>
+      <div id="cc-area"></div>
+    </div>
+
+  </div><!-- /content -->
+</div><!-- /main -->
+
+<!-- ========== MODAIS ========== -->
+
+<!-- BANCO -->
+<div class="modal-overlay" id="modal-banco">
+  <div class="modal" style="width:480px">
+    <div class="modal-hd"><h3 id="modal-banco-title">🏦 Novo Banco</h3><button class="modal-close" onclick="closeModal('modal-banco')">✕</button></div>
+    <div class="modal-body">
+      <input type="hidden" id="banco-edit-id">
+      <div class="form-row"><div class="fg"><label class="field-req">Nome / Banco</label><input id="banco-nome" placeholder="Ex: Bradesco — Conta PJ"></div></div>
+      <div class="form-row cols3">
+        <div class="fg"><label>Agência</label><input id="banco-agencia" placeholder="0000-0"></div>
+        <div class="fg"><label>Conta</label><input id="banco-conta" placeholder="00000-0"></div>
+        <div class="fg"><label class="field-req">Saldo inicial (R$)</label><input id="banco-saldo" type="text" placeholder="0,00" oninput="maskValor(this)"></div>
+      </div>
+      <div class="form-row cols2">
+        <div class="fg"><label>Código do banco</label><input id="banco-codigo" placeholder="Ex: 237"></div>
+        <div class="fg"><label>Ativo</label><select id="banco-ativo"><option value="1">Sim</option><option value="0">Não</option></select></div>
+      </div>
+    </div>
+    <div class="modal-ft">
+      <button class="btn btn-ghost" onclick="closeModal('modal-banco')">Cancelar</button>
+      <button class="btn btn-primary" onclick="salvarBanco()">💾 Salvar</button>
+    </div>
+  </div>
+</div>
+
+<!-- FORNECEDOR -->
+<div class="modal-overlay" id="modal-fornecedor">
+  <div class="modal" style="width:500px">
+    <div class="modal-hd"><h3 id="modal-forn-title">🏢 Novo Fornecedor</h3><button class="modal-close" onclick="closeModal('modal-fornecedor')">✕</button></div>
+    <div class="modal-body">
+      <input type="hidden" id="forn-edit-id">
+      <div class="form-row"><div class="fg"><label class="field-req">Nome / Razão social</label><input id="forn-nome" placeholder="Ex: Laticínios BH Ltda"></div></div>
+      <div class="form-row cols3">
+        <div class="fg"><label class="field-req">Tipo</label>
+          <select id="forn-tipo"><option value="Fornecedor">Fornecedor</option><option value="Cliente">Cliente</option><option value="Ambos">Fornecedor e Cliente</option><option value="Funcionário">Funcionário</option><option value="Outros">Outros</option></select>
+        </div>
+        <div class="fg"><label>CNPJ / CPF</label><input id="forn-doc" placeholder="00.000.000/0001-00" maxlength="18"></div>
+        <div class="fg"><label>Contato (WhatsApp)</label><input id="forn-fone" placeholder="(00) 9 0000-0000"></div>
+      </div>
+      <div class="form-row cols2">
+        <div class="fg"><label>E-mail</label><input id="forn-email" type="email" placeholder="email@exemplo.com"></div>
+        <div class="fg"><label>Ativo</label><select id="forn-ativo"><option value="1">Sim</option><option value="0">Não</option></select></div>
+      </div>
+    </div>
+    <div class="modal-ft">
+      <button class="btn btn-ghost" onclick="closeModal('modal-fornecedor')">Cancelar</button>
+      <button class="btn btn-primary" onclick="salvarFornecedor()">💾 Salvar</button>
+    </div>
+  </div>
+</div>
+
+<!-- CENTRO DE CUSTO -->
+<div class="modal-overlay" id="modal-centro">
+  <div class="modal" style="width:440px">
+    <div class="modal-hd"><h3 id="modal-cc-title">🏷️ Novo Centro de Custo</h3><button class="modal-close" onclick="closeModal('modal-centro')">✕</button></div>
+    <div class="modal-body">
+      <input type="hidden" id="cc-edit-id">
+      <div class="form-row cols2">
+        <div class="fg"><label class="field-req">Código</label><input id="cc-codigo" placeholder="Ex: CC-001"></div>
+        <div class="fg"><label class="field-req">Tipo</label>
+          <select id="cc-tipo"><option value="Despesa">Despesa</option><option value="Receita">Receita</option><option value="Ambos">Ambos</option></select>
+        </div>
+      </div>
+      <div class="form-row"><div class="fg"><label class="field-req">Descrição</label><input id="cc-descricao" placeholder="Ex: Custos de Matéria-Prima"></div></div>
+      <div class="form-row"><div class="fg"><label>Ativo</label><select id="cc-ativo"><option value="1">Sim</option><option value="0">Não</option></select></div></div>
+    </div>
+    <div class="modal-ft">
+      <button class="btn btn-ghost" onclick="closeModal('modal-centro')">Cancelar</button>
+      <button class="btn btn-primary" onclick="salvarCentro()">💾 Salvar</button>
+    </div>
+  </div>
+</div>
+
+<!-- LANÇAMENTO -->
+<div class="modal-overlay" id="modal-lancamento">
+  <div class="modal" style="width:700px">
+    <div class="modal-hd"><h3 id="modal-lanc-title">📥 Novo Lançamento</h3><button class="modal-close" onclick="closeModal('modal-lancamento')">✕</button></div>
+    <div class="modal-body">
+      <input type="hidden" id="lanc-edit-id">
+      <input type="hidden" id="lanc-tipo">
+
+      <div class="form-divider">Identificação</div>
+      <div class="form-row cols3">
+        <div class="fg">
+          <label class="field-req">Nº do documento</label>
+          <input id="lanc-doc" placeholder="000000000000000" maxlength="15" oninput="this.value=this.value.replace(/\D/g,'').slice(0,15)">
+          <span class="hint">Máx. 15 dígitos numéricos</span>
+        </div>
+        <div class="fg">
+          <label class="field-req">Competência</label>
+          <input id="lanc-comp" placeholder="mm/aaaa" maxlength="7" oninput="maskComp(this)">
+        </div>
+        <div class="fg">
+          <label class="field-req">Valor (R$)</label>
+          <input id="lanc-valor" type="text" placeholder="0,00" oninput="maskValor(this)">
+        </div>
+      </div>
+
+      <div class="form-divider">Datas</div>
+      <div class="form-row cols3">
+        <div class="fg">
+          <label class="field-req">Data de emissão</label>
+          <input id="lanc-emissao" type="text" placeholder="dd/mm/aaaa" maxlength="10" oninput="maskDate(this)">
+        </div>
+        <div class="fg">
+          <label class="field-req">Data de vencimento</label>
+          <input id="lanc-vencimento" type="text" placeholder="dd/mm/aaaa" maxlength="10" oninput="maskDate(this)">
+        </div>
+        <div class="fg">
+          <label>Data de liquidação</label>
+          <input id="lanc-liquidacao" type="text" placeholder="dd/mm/aaaa" maxlength="10" oninput="maskDate(this)">
+          <span class="hint">Preencher ao liquidar</span>
+        </div>
+      </div>
+
+      <div class="form-divider">Vínculos</div>
+      <div class="form-row cols3">
+        <div class="fg" style="grid-column:1/-1">
+          <label class="field-req">Fornecedor / Pagador</label>
+          <!-- SEARCHABLE SELECT -->
+          <div class="ss-wrap" id="ss-forn-wrap">
+            <input type="hidden" id="lanc-fornecedor-id">
+            <div class="ss-input-box">
+              <input type="text" class="ss-input" id="ss-forn-input" placeholder="Digite o nome para buscar..." autocomplete="off" oninput="ssFilter('ss-forn-wrap')" onclick="ssOpen('ss-forn-wrap')" readonly>
+              <span class="ss-arrow">▼</span>
+            </div>
+            <div class="ss-dropdown" id="ss-forn-drop">
+              <div class="ss-search-box">
+                <input type="text" class="ss-search" id="ss-forn-search" placeholder="🔍 Buscar fornecedor..." oninput="ssSearch(this,'ss-forn-wrap','ss-forn-drop')" autocomplete="off">
+              </div>
+              <div class="ss-list" id="ss-forn-list"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="form-row cols2">
+        <div class="fg">
+          <label class="field-req">Banco</label>
+          <select id="lanc-banco" style="padding:9px 12px;border:1.5px solid #dde0ee;border-radius:8px;font-size:13px;outline:none"><option value="">— Selecione —</option></select>
+        </div>
+        <div class="fg">
+          <label class="field-req">Centro de custo</label>
+          <select id="lanc-centro" style="padding:9px 12px;border:1.5px solid #dde0ee;border-radius:8px;font-size:13px;outline:none"><option value="">— Selecione —</option></select>
+        </div>
+      </div>
+
+      <div class="form-divider">Observação</div>
+      <div class="form-row">
+        <div class="fg">
+          <label>Observação</label>
+          <textarea id="lanc-obs" maxlength="200" placeholder="Informações adicionais sobre o lançamento..." oninput="document.getElementById('obs-count').textContent=this.value.length+'/200'"></textarea>
+          <span class="char-count" id="obs-count">0/200</span>
+        </div>
+      </div>
+    </div>
+    <div class="modal-ft">
+      <button class="btn btn-ghost" onclick="closeModal('modal-lancamento')">Cancelar</button>
+      <button class="btn btn-primary" onclick="salvarLancamento()">💾 Salvar lançamento</button>
+    </div>
+  </div>
+</div>
+
+<!-- LIQUIDAR -->
+<div class="modal-overlay" id="modal-liquidar">
+  <div class="modal" style="width:440px">
+    <div class="modal-hd"><h3 id="modal-liq-title">✅ Liquidar lançamento</h3><button class="modal-close" onclick="closeModal('modal-liquidar')">✕</button></div>
+    <div class="modal-body">
+      <input type="hidden" id="liq-id">
+      <input type="hidden" id="liq-tipo">
+      <div class="confirm-box" id="liq-info"></div>
+      <div class="form-row cols2">
+        <div class="fg">
+          <label class="field-req">Data de liquidação</label>
+          <input id="liq-data" type="text" placeholder="dd/mm/aaaa" maxlength="10" oninput="maskDate(this)">
+        </div>
+        <div class="fg">
+          <label>Banco utilizado</label>
+          <select id="liq-banco" style="padding:9px 12px;border:1.5px solid #dde0ee;border-radius:8px;font-size:13px;outline:none"><option value="">— Selecione —</option></select>
+        </div>
+      </div>
+      <div class="fg">
+        <label>Observação (opcional)</label>
+        <input id="liq-obs" placeholder="Ex: Pago via Pix, ref. NF 4421">
+      </div>
+    </div>
+    <div class="modal-ft">
+      <button class="btn btn-ghost" onclick="closeModal('modal-liquidar')">Cancelar</button>
+      <button class="btn btn-success" onclick="confirmarLiquidacao()">✅ Confirmar liquidação</button>
+    </div>
+  </div>
+</div>
+
+<script>
+'use strict';
+
+// ============================================================
+// STORAGE
+// ============================================================
+const K = { bancos:'fin_bancos', fornecedores:'fin_forn', centros:'fin_cc', receber:'fin_receber', pagar:'fin_pagar' };
+const db = {
+  get: k => { try { return JSON.parse(localStorage.getItem(K[k])) || [] } catch { return [] } },
+  set: (k,v) => localStorage.setItem(K[k], JSON.stringify(v)),
+  nextId: arr => arr.length ? Math.max(0,...arr.map(x=>x.id||0))+1 : 1
+};
+
+// ============================================================
+// SEED
+// ============================================================
+function seed() {
+  if (!db.get('bancos').length) db.set('bancos',[
+    {id:1,nome:'Bradesco — Conta PJ',agencia:'1234-5',conta:'98765-4',codigo:'237',saldoInicial:5000,ativo:1},
+    {id:2,nome:'Nubank — Conta PJ',agencia:'0001',conta:'12345678-9',codigo:'260',saldoInicial:2500,ativo:1}
+  ]);
+  if (!db.get('fornecedores').length) db.set('fornecedores',[
+    {id:1,nome:'Atacado do Chef',tipo:'Fornecedor',doc:'98.765.432/0001-11',fone:'(47) 9 9888-0002',email:'',ativo:1},
+    {id:2,nome:'Danilo Ramos',tipo:'Cliente',doc:'',fone:'(47) 9xxxx-4231',email:'',ativo:1},
+    {id:3,nome:'Laticínios BH Ltda',tipo:'Fornecedor',doc:'12.345.678/0001-90',fone:'(31) 9 9999-0001',email:'contato@laticiniosbh.com',ativo:1}
+  ]);
+  if (!db.get('centros').length) db.set('centros',[
+    {id:1,codigo:'CC-001',descricao:'Matéria-Prima e Insumos',tipo:'Despesa',ativo:1},
+    {id:2,codigo:'CC-002',descricao:'Despesas Operacionais Fixas',tipo:'Despesa',ativo:1},
+    {id:3,codigo:'CC-003',descricao:'Receitas de Vendas',tipo:'Receita',ativo:1},
+    {id:4,codigo:'CC-004',descricao:'Despesas com Pessoal',tipo:'Despesa',ativo:1}
+  ]);
+  if (!db.get('pagar').length) db.set('pagar',[
+    {id:1,doc:'000000000000001',comp:'06/2026',valor:420,emissao:'01/06/2026',vencimento:'09/06/2026',liquidacao:'',fornecedor:3,banco:1,centro:1,obs:'Pedido de muçarela — NF 4421',status:'pendente'},
+    {id:2,doc:'000000000000002',comp:'06/2026',valor:800,emissao:'01/06/2026',vencimento:'14/06/2026',liquidacao:'',fornecedor:1,banco:1,centro:2,obs:'Aluguel junho 2026',status:'pendente'},
+    {id:3,doc:'000000000000003',comp:'05/2026',valor:320,emissao:'25/05/2026',vencimento:'05/06/2026',liquidacao:'05/06/2026',fornecedor:1,banco:1,centro:2,obs:'Energia elétrica maio',status:'pago'},
+    {id:4,doc:'000000000000004',comp:'06/2026',valor:600,emissao:'01/06/2026',vencimento:'19/06/2026',liquidacao:'',fornecedor:1,banco:1,centro:4,obs:'Entregadores junho',status:'pendente'}
+  ]);
+  if (!db.get('receber').length) db.set('receber',[
+    {id:1,doc:'000000000000010',comp:'06/2026',valor:78,emissao:'07/06/2026',vencimento:'10/06/2026',liquidacao:'',fornecedor:2,banco:1,centro:3,obs:'Pedido fiado — WhatsApp',status:'pendente'},
+    {id:2,doc:'000000000000011',comp:'06/2026',valor:202,emissao:'07/06/2026',vencimento:'12/06/2026',liquidacao:'',fornecedor:2,banco:1,centro:3,obs:'Crédito cartão — lote',status:'pendente'},
+    {id:3,doc:'000000000000012',comp:'05/2026',valor:4312,emissao:'31/05/2026',vencimento:'31/05/2026',liquidacao:'31/05/2026',fornecedor:2,banco:1,centro:3,obs:'Receitas de vendas maio',status:'recebido'}
+  ]);
+}
+
+// ============================================================
+// MASKS
+// ============================================================
+function maskDate(el) {
+  let v = el.value.replace(/\D/g,'');
+  if (v.length>2) v=v.slice(0,2)+'/'+v.slice(2);
+  if (v.length>5) v=v.slice(0,5)+'/'+v.slice(5,9);
+  el.value=v;
+}
+function maskComp(el) {
+  let v=el.value.replace(/\D/g,'');
+  if (v.length>2) v=v.slice(0,2)+'/'+v.slice(2,6);
+  el.value=v;
+}
+function maskValor(el) {
+  let v=el.value.replace(/[^\d]/g,'');
+  if (!v){el.value='';return;}
+  v=String(parseInt(v,10));
+  while(v.length<3)v='0'+v;
+  el.value=v.slice(0,-2).replace(/\B(?=(\d{3})+(?!\d))/g,'.')+','+v.slice(-2);
+}
+function parseValor(s){return parseFloat((s||'0').replace(/\./g,'').replace(',','.'))||0;}
+function fmtValor(n){return (n||0).toLocaleString('pt-BR',{minimumFractionDigits:2,maximumFractionDigits:2});}
+function R(n){return 'R$ '+fmtValor(n);}
+function dateKey(d){
+  if(!d||d.length<10)return '00000000';
+  const p=d.split('/');
+  return p.length===3?p[2]+p[1]+p[0]:'00000000';
+}
+function todayStr(){const n=new Date();return String(n.getDate()).padStart(2,'0')+'/'+String(n.getMonth()+1).padStart(2,'0')+'/'+n.getFullYear();}
+function fmtDate(d){return d||'—';}
+
+// ============================================================
+// SEARCHABLE SELECT COMPONENT
+// ============================================================
+let _ssOptions = {};   // { wrapId: [{value, label}] }
+let _ssSelected = {};  // { wrapId: value }
+
+function ssInit(wrapId, options, selectedVal) {
+  // options: [{value, label}] already sorted
+  _ssOptions[wrapId] = options;
+  const input  = document.getElementById(wrapId.replace('ss-forn-wrap','ss-forn-input'));
+  const hidden = document.getElementById(wrapId.replace('ss-forn-wrap','lanc-fornecedor-id'));
+  const list   = document.getElementById(wrapId.replace('ss-forn-wrap','ss-forn-list'));
+  ssFill(wrapId, '', selectedVal);
+  if (selectedVal) {
+    const opt = options.find(o=>String(o.value)===String(selectedVal));
+    if (opt && input) { input.value=opt.label; input.classList.add('has-val'); }
+    if (hidden) hidden.value = selectedVal||'';
+  } else {
+    if (input) { input.value=''; input.classList.remove('has-val'); }
+    if (hidden) hidden.value='';
+  }
+}
+
+function ssFill(wrapId, query, selectedVal) {
+  const listEl = document.getElementById('ss-forn-list');
+  if (!listEl) return;
+  const opts = (_ssOptions[wrapId]||[]).filter(o => !query || o.label.toLowerCase().includes(query.toLowerCase()));
+  if (!opts.length) {
+    listEl.innerHTML = '<div class="ss-opt empty">Nenhum resultado encontrado</div>';
+    return;
+  }
+  const curVal = selectedVal !== undefined ? selectedVal : document.getElementById('lanc-fornecedor-id')?.value||'';
+  listEl.innerHTML = opts.map(o=>`
+    <div class="ss-opt ${String(o.value)===String(curVal)?'selected':''}" data-value="${o.value}" data-label="${o.label}" onclick="ssSelect('${wrapId}',${o.value},'${o.label.replace(/'/g,"\\'")}')">
+      ${o.label}
+    </div>`).join('');
+}
+
+function ssSearch(searchEl, wrapId, dropId) {
+  ssFill(wrapId, searchEl.value);
+}
+
+function ssOpen(wrapId) {
+  const wrap = document.getElementById(wrapId);
+  if (!wrap) return;
+  wrap.classList.toggle('open');
+  if (wrap.classList.contains('open')) {
+    const searchEl = document.getElementById('ss-forn-search');
+    if (searchEl) { searchEl.value=''; searchEl.focus(); }
+    ssFill(wrapId, '');
+  }
+}
+
+function ssFilter(wrapId) {
+  // When main input changes (readonly, so not triggered by user typing — left as hook)
+}
+
+function ssSelect(wrapId, value, label) {
+  const hidden = document.getElementById('lanc-fornecedor-id');
+  const input  = document.getElementById('ss-forn-input');
+  const wrap   = document.getElementById(wrapId);
+  if (hidden) hidden.value = value;
+  if (input)  { input.value = label; input.classList.add('has-val'); }
+  if (wrap)   wrap.classList.remove('open');
+  // highlight selected
+  ssFill(wrapId, '', value);
+}
+
+// Close dropdown on outside click
+document.addEventListener('click', e => {
+  const wrap = document.getElementById('ss-forn-wrap');
+  if (wrap && !wrap.contains(e.target)) wrap.classList.remove('open');
+});
+
+// ============================================================
+// NAVIGATION
+// ============================================================
+const TITLES = {
+  bancos:       ['Bancos',                   'Cadastros › Bancos',              '+ Novo Banco',      'modal-banco'],
+  fornecedores: ['Fornecedores',             'Cadastros › Fornecedores',        '+ Novo Fornecedor', 'modal-fornecedor'],
+  centros:      ['Centro de Custo',          'Cadastros › Centro de Custo',     '+ Novo Centro',     'modal-centro'],
+  receber:      ['Contas a Receber',         'Lançamentos › A Receber',         '+ Novo lançamento', '__receber'],
+  pagar:        ['Contas a Pagar',           'Lançamentos › A Pagar',           '+ Novo lançamento', '__pagar'],
+  fluxo:        ['Fluxo de Caixa Projetado', 'Relatórios › Fluxo Projetado',    '', ''],
+  conciliacao:  ['Conciliação Bancária',     'Relatórios › Conciliação',        '', ''],
+  centrocusto:  ['Por Centro de Custo',      'Relatórios › Centro de Custo',    '', '']
+};
+let _cur = 'bancos';
+
+function nav(id, el) {
+  document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));
+  document.getElementById('s-'+id).classList.add('active');
+  document.querySelectorAll('.sb-item').forEach(i=>i.classList.remove('active'));
+  if(el) el.classList.add('active');
+  _cur = id;
+  const t = TITLES[id]||[id,'','',''];
+  document.getElementById('page-title').textContent = t[0];
+  document.getElementById('page-breadcrumb').textContent = t[1];
+  document.getElementById('topbar-btn-label').textContent = t[2];
+  document.getElementById('topbar-btn').style.display = t[2] ? '' : 'none';
+  renderScreen(id);
+}
+
+function topbarAction() {
+  const t = TITLES[_cur];
+  if (!t||!t[3]) return;
+  if (t[3]==='__receber') openLancamento('receber');
+  else if (t[3]==='__pagar') openLancamento('pagar');
+  else openModalNew(t[3]);
+}
+
+function renderScreen(id) {
+  const map = {bancos:renderBancos,fornecedores:renderFornecedores,centros:renderCentros,receber:renderReceber,pagar:renderPagar,fluxo:initFluxo,conciliacao:initConciliacao,centrocusto:initCentroCusto};
+  if (map[id]) map[id]();
+}
+
+// ============================================================
+// MODAIS
+// ============================================================
+function openModal(id){document.getElementById(id).classList.add('open');}
+function closeModal(id){document.getElementById(id).classList.remove('open');}
+document.querySelectorAll('.modal-overlay').forEach(m=>{
+  m.addEventListener('click',e=>{if(e.target===m)m.classList.remove('open');});
+});
+function openModalNew(id){
+  const hiddens={'modal-banco':'banco-edit-id','modal-fornecedor':'forn-edit-id','modal-centro':'cc-edit-id'};
+  if(hiddens[id]) document.getElementById(hiddens[id]).value='';
+  openModal(id);
+}
+
+// ============================================================
+// BANCOS
+// ============================================================
+function saldoAtualBanco(b) {
+  const rec = db.get('receber').filter(x=>x.banco==b.id&&x.status==='recebido').reduce((s,x)=>s+x.valor,0);
+  const pag = db.get('pagar').filter(x=>x.banco==b.id&&x.status==='pago').reduce((s,x)=>s+x.valor,0);
+  return b.saldoInicial + rec - pag;
+}
+
+function renderBancos() {
+  const bancos=db.get('bancos');
+  const total=bancos.reduce((s,b)=>s+b.saldoInicial,0);
+  const totalAtual=bancos.reduce((s,b)=>s+saldoAtualBanco(b),0);
+  document.getElementById('kpi-bancos').innerHTML=`
+    <div class="kpi"><div class="lbl">Bancos ativos</div><div class="val">${bancos.filter(b=>b.ativo).length}</div></div>
+    <div class="kpi"><div class="lbl">Saldo inicial total</div><div class="val">${R(total)}</div></div>
+    <div class="kpi green"><div class="lbl">Saldo atual total</div><div class="val">${R(totalAtual)}</div></div>
+  `;
+  document.getElementById('tbl-bancos').innerHTML=bancos.length?bancos.map(b=>`
+    <tr>
+      <td class="fw7">${b.nome}</td><td>${b.agencia||'—'}</td><td>${b.conta||'—'}</td>
+      <td class="text-right">${R(b.saldoInicial)}</td>
+      <td class="text-right fw7" style="color:${saldoAtualBanco(b)>=0?'#1a7a4a':'#c03020'}">${R(saldoAtualBanco(b))}</td>
+      <td class="nowrap">
+        <button class="btn btn-ghost btn-sm" onclick="editBanco(${b.id})">✏️ Editar</button>
+        <button class="btn btn-danger btn-sm" onclick="excluir('bancos',${b.id},renderBancos)">🗑</button>
+      </td>
+    </tr>`).join(''):'<tr><td colspan="6" class="tbl-empty">Nenhum banco cadastrado.</td></tr>';
+}
+
+function editBanco(id){
+  const b=db.get('bancos').find(x=>x.id===id);if(!b)return;
+  document.getElementById('banco-edit-id').value=id;
+  document.getElementById('banco-nome').value=b.nome;
+  document.getElementById('banco-agencia').value=b.agencia||'';
+  document.getElementById('banco-conta').value=b.conta||'';
+  document.getElementById('banco-codigo').value=b.codigo||'';
+  document.getElementById('banco-saldo').value=fmtValor(b.saldoInicial);
+  document.getElementById('banco-ativo').value=b.ativo;
+  document.getElementById('modal-banco-title').textContent='🏦 Editar Banco';
+  openModal('modal-banco');
+}
+function salvarBanco(){
+  const nome=document.getElementById('banco-nome').value.trim();
+  if(!nome){alert('Informe o nome.');return;}
+  const bancos=db.get('bancos');
+  const editId=parseInt(document.getElementById('banco-edit-id').value)||0;
+  const obj={nome,agencia:document.getElementById('banco-agencia').value.trim(),conta:document.getElementById('banco-conta').value.trim(),codigo:document.getElementById('banco-codigo').value.trim(),saldoInicial:parseValor(document.getElementById('banco-saldo').value),ativo:parseInt(document.getElementById('banco-ativo').value)};
+  if(editId){Object.assign(bancos.find(x=>x.id===editId)||{},{...obj,id:editId});}
+  else{bancos.push({...obj,id:db.nextId(bancos)});}
+  db.set('bancos',bancos);
+  closeModal('modal-banco');
+  document.getElementById('modal-banco-title').textContent='🏦 Novo Banco';
+  renderBancos(); updateSelects();
+}
+
+// ============================================================
+// FORNECEDORES
+// ============================================================
+function fornSorted(){return [...db.get('fornecedores')].sort((a,b)=>a.nome.localeCompare(b.nome,'pt-BR'));}
+
+function renderFornecedores(){
+  const q=(document.getElementById('search-forn')?.value||'').toLowerCase();
+  const list=fornSorted().filter(f=>!q||f.nome.toLowerCase().includes(q)||(f.doc||'').includes(q));
+  document.getElementById('tbl-fornecedores').innerHTML=list.length?list.map(f=>`
+    <tr>
+      <td class="fw7">${f.nome}</td>
+      <td><span class="badge ${f.tipo==='Cliente'?'b-blue':f.tipo==='Funcionário'?'b-orange':'b-gray'}">${f.tipo}</span></td>
+      <td>${f.doc||'—'}</td><td>${f.fone||'—'}</td>
+      <td class="nowrap">
+        <button class="btn btn-ghost btn-sm" onclick="editForn(${f.id})">✏️ Editar</button>
+        <button class="btn btn-danger btn-sm" onclick="excluir('fornecedores',${f.id},renderFornecedores)">🗑</button>
+      </td>
+    </tr>`).join(''):'<tr><td colspan="5" class="tbl-empty">Nenhum fornecedor cadastrado.</td></tr>';
+}
+function editForn(id){
+  const f=db.get('fornecedores').find(x=>x.id===id);if(!f)return;
+  document.getElementById('forn-edit-id').value=id;
+  document.getElementById('forn-nome').value=f.nome;
+  document.getElementById('forn-tipo').value=f.tipo;
+  document.getElementById('forn-doc').value=f.doc||'';
+  document.getElementById('forn-fone').value=f.fone||'';
+  document.getElementById('forn-email').value=f.email||'';
+  document.getElementById('forn-ativo').value=f.ativo;
+  document.getElementById('modal-forn-title').textContent='🏢 Editar Fornecedor';
+  openModal('modal-fornecedor');
+}
+function salvarFornecedor(){
+  const nome=document.getElementById('forn-nome').value.trim();
+  if(!nome){alert('Informe o nome.');return;}
+  const list=db.get('fornecedores');
+  const editId=parseInt(document.getElementById('forn-edit-id').value)||0;
+  const obj={nome,tipo:document.getElementById('forn-tipo').value,doc:document.getElementById('forn-doc').value.trim(),fone:document.getElementById('forn-fone').value.trim(),email:document.getElementById('forn-email').value.trim(),ativo:parseInt(document.getElementById('forn-ativo').value)};
+  if(editId){Object.assign(list.find(x=>x.id===editId)||{},{...obj,id:editId});}
+  else{list.push({...obj,id:db.nextId(list)});}
+  db.set('fornecedores',list);
+  closeModal('modal-fornecedor');
+  document.getElementById('forn-edit-id').value='';
+  document.getElementById('modal-forn-title').textContent='🏢 Novo Fornecedor';
+  renderFornecedores(); updateSelects();
+}
+
+// ============================================================
+// CENTROS DE CUSTO
+// ============================================================
+function renderCentros(){
+  const list=db.get('centros');
+  document.getElementById('tbl-centros').innerHTML=list.length?list.map(c=>`
+    <tr>
+      <td class="fw7">${c.codigo}</td><td>${c.descricao}</td>
+      <td><span class="badge ${c.tipo==='Receita'?'b-green':c.tipo==='Ambos'?'b-blue':'b-red'}">${c.tipo}</span></td>
+      <td>${c.ativo?'<span class="badge b-green">Ativo</span>':'<span class="badge b-gray">Inativo</span>'}</td>
+      <td class="nowrap">
+        <button class="btn btn-ghost btn-sm" onclick="editCentro(${c.id})">✏️ Editar</button>
+        <button class="btn btn-danger btn-sm" onclick="excluir('centros',${c.id},renderCentros)">🗑</button>
+      </td>
+    </tr>`).join(''):'<tr><td colspan="5" class="tbl-empty">Nenhum centro de custo cadastrado.</td></tr>';
+}
+function editCentro(id){
+  const c=db.get('centros').find(x=>x.id===id);if(!c)return;
+  document.getElementById('cc-edit-id').value=id;
+  document.getElementById('cc-codigo').value=c.codigo;
+  document.getElementById('cc-descricao').value=c.descricao;
+  document.getElementById('cc-tipo').value=c.tipo;
+  document.getElementById('cc-ativo').value=c.ativo;
+  document.getElementById('modal-cc-title').textContent='🏷️ Editar Centro de Custo';
+  openModal('modal-centro');
+}
+function salvarCentro(){
+  const codigo=document.getElementById('cc-codigo').value.trim();
+  const desc=document.getElementById('cc-descricao').value.trim();
+  if(!codigo||!desc){alert('Preencha código e descrição.');return;}
+  const list=db.get('centros');
+  const editId=parseInt(document.getElementById('cc-edit-id').value)||0;
+  const obj={codigo,descricao:desc,tipo:document.getElementById('cc-tipo').value,ativo:parseInt(document.getElementById('cc-ativo').value)};
+  if(editId){Object.assign(list.find(x=>x.id===editId)||{},{...obj,id:editId});}
+  else{list.push({...obj,id:db.nextId(list)});}
+  db.set('centros',list);
+  closeModal('modal-centro');
+  document.getElementById('cc-edit-id').value='';
+  document.getElementById('modal-cc-title').textContent='🏷️ Novo Centro de Custo';
+  renderCentros(); updateSelects();
+}
+
+// ============================================================
+// LANÇAMENTOS
+// ============================================================
+function calcStatus(item,tipo){
+  if(item.status==='pago'||item.status==='recebido')return item.status;
+  return dateKey(item.vencimento)<dateKey(todayStr())?'vencido':'pendente';
+}
+function statusBadge(st){
+  const m={pendente:'<span class="badge b-yellow">Pendente</span>',pago:'<span class="badge b-green">Pago</span>',recebido:'<span class="badge b-green">Recebido</span>',vencido:'<span class="badge b-red">Vencido</span>'};
+  return m[st]||`<span class="badge b-gray">${st}</span>`;
+}
+function nomeForn(id){return db.get('fornecedores').find(x=>x.id==id)?.nome||'—';}
+function nomeBanco(id){const b=db.get('bancos').find(x=>x.id==id);return b?b.nome:'—';}
+function nomeBancoShort(id){return nomeBanco(id).split('—')[0].trim();}
+function nomeCentro(id){const c=db.get('centros').find(x=>x.id==id);return c?c.codigo:'—';}
+function nomeCentroFull(id){const c=db.get('centros').find(x=>x.id==id);return c?c.codigo+' — '+c.descricao:'—';}
+
+function kpiLanc(list,tipo){
+  const pend=list.filter(x=>calcStatus(x,tipo)==='pendente').reduce((s,x)=>s+x.valor,0);
+  const venc=list.filter(x=>calcStatus(x,tipo)==='vencido').reduce((s,x)=>s+x.valor,0);
+  const liq=list.filter(x=>x.status==='pago'||x.status==='recebido').reduce((s,x)=>s+x.valor,0);
+  const total=list.reduce((s,x)=>s+x.valor,0);
+  return `
+    <div class="kpi"><div class="lbl">Total lançado</div><div class="val">${R(total)}</div></div>
+    <div class="kpi ${tipo==='receber'?'green':'red'}"><div class="lbl">${tipo==='receber'?'Recebido':'Pago'}</div><div class="val">${R(liq)}</div></div>
+    <div class="kpi orange"><div class="lbl">Pendente</div><div class="val">${R(pend)}</div></div>
+    <div class="kpi ${venc>0?'warn':''}"><div class="lbl">${venc>0?'⚠️ ':''}Vencido</div><div class="val ${venc>0?'saldo-neg':''}">${R(venc)}</div></div>
+  `;
+}
+
+function lançRow(x,tipo,renderFnName){
+  const st=calcStatus(x,tipo);
+  const canLiq=st!=='pago'&&st!=='recebido';
+  return `<tr>
+    <td class="fw7 nowrap">${x.doc}</td>
+    <td>${nomeForn(x.fornecedor)}</td>
+    <td>${x.comp}</td>
+    <td class="nowrap">${x.emissao}</td>
+    <td class="nowrap" style="${st==='vencido'?'color:#c03020;font-weight:600':''}">${x.vencimento}</td>
+    <td class="nowrap">${x.liquidacao||'—'}</td>
+    <td class="nowrap" title="${nomeBanco(x.banco)}">${nomeBancoShort(x.banco)}</td>
+    <td class="nowrap" title="${nomeCentroFull(x.centro)}">${nomeCentro(x.centro)}</td>
+    <td class="text-right fw7">${R(x.valor)}</td>
+    <td>${statusBadge(st)}</td>
+    <td class="nowrap">
+      ${canLiq?`<button class="btn btn-success btn-sm" onclick="abrirLiquidar(${x.id},'${tipo}')">✓</button>`:''}
+      <button class="btn btn-ghost btn-sm" onclick="editLanc(${x.id},'${tipo}')">✏️</button>
+      <button class="btn btn-danger btn-sm" onclick="excluir('${tipo}',${x.id},${renderFnName})">🗑</button>
+    </td>
+  </tr>`;
+}
+
+function populateCompFilter(key, selId, curVal){
+  const all=db.get(key);
+  const comps=[...new Set(all.map(x=>x.comp))].sort((a,b)=>{const ka=a.split('/').reverse().join(''),kb=b.split('/').reverse().join('');return ka<kb?1:-1;});
+  const sel=document.getElementById(selId);if(!sel)return;
+  sel.innerHTML='<option value="">Todas competências</option>'+comps.map(c=>`<option ${c===curVal?'selected':''}>${c}</option>`).join('');
+}
+
+function renderReceber(){
+  const all=db.get('receber');
+  const filterSt=document.getElementById('filter-receber-status')?.value||'';
+  const filterCp=document.getElementById('filter-receber-comp')?.value||'';
+  populateCompFilter('receber','filter-receber-comp',filterCp);
+  const list=all.filter(x=>(!filterSt||calcStatus(x,'receber')===filterSt)&&(!filterCp||x.comp===filterCp));
+  document.getElementById('kpi-receber').innerHTML=kpiLanc(all,'receber');
+  document.getElementById('tbl-receber').innerHTML=list.length
+    ?list.sort((a,b)=>dateKey(a.vencimento)>dateKey(b.vencimento)?1:-1).map(x=>lançRow(x,'receber','renderReceber')).join('')
+    :'<tr><td colspan="11" class="tbl-empty">Nenhum lançamento encontrado.</td></tr>';
+  const pend=all.filter(x=>['pendente','vencido'].includes(calcStatus(x,'receber'))).length;
+  const badge=document.getElementById('badge-receber');
+  badge.textContent=pend;badge.style.display=pend?'':'none';
+}
+
+function renderPagar(){
+  const all=db.get('pagar');
+  const filterSt=document.getElementById('filter-pagar-status')?.value||'';
+  const filterCp=document.getElementById('filter-pagar-comp')?.value||'';
+  populateCompFilter('pagar','filter-pagar-comp',filterCp);
+  const list=all.filter(x=>(!filterSt||calcStatus(x,'pagar')===filterSt)&&(!filterCp||x.comp===filterCp));
+  document.getElementById('kpi-pagar').innerHTML=kpiLanc(all,'pagar');
+  document.getElementById('tbl-pagar').innerHTML=list.length
+    ?list.sort((a,b)=>dateKey(a.vencimento)>dateKey(b.vencimento)?1:-1).map(x=>lançRow(x,'pagar','renderPagar')).join('')
+    :'<tr><td colspan="11" class="tbl-empty">Nenhum lançamento encontrado.</td></tr>';
+  const pend=all.filter(x=>['pendente','vencido'].includes(calcStatus(x,'pagar'))).length;
+  const badge=document.getElementById('badge-pagar');
+  badge.textContent=pend;badge.style.display=pend?'':'none';
+}
+
+// ============================================================
+// MODAL LANÇAMENTO
+// ============================================================
+function openLancamento(tipo, editData){
+  document.getElementById('lanc-tipo').value=tipo;
+  document.getElementById('modal-lanc-title').textContent=tipo==='receber'?'📥 Lançamento — Contas a Receber':'📤 Lançamento — Contas a Pagar';
+  document.getElementById('lanc-edit-id').value='';
+  updateSelects();
+
+  if(!editData){
+    document.getElementById('lanc-doc').value='';
+    document.getElementById('lanc-comp').value='';
+    document.getElementById('lanc-valor').value='';
+    document.getElementById('lanc-emissao').value=todayStr();
+    document.getElementById('lanc-vencimento').value='';
+    document.getElementById('lanc-liquidacao').value='';
+    document.getElementById('lanc-obs').value='';
+    document.getElementById('obs-count').textContent='0/200';
+    document.getElementById('lanc-banco').value='';
+    document.getElementById('lanc-centro').value='';
+    ssInit('ss-forn-wrap', fornSorted().filter(f=>f.ativo).map(f=>({value:f.id,label:f.nome})), null);
+  }
+  if(editData){
+    document.getElementById('lanc-edit-id').value=editData.id;
+    document.getElementById('lanc-doc').value=editData.doc||'';
+    document.getElementById('lanc-comp').value=editData.comp||'';
+    document.getElementById('lanc-valor').value=fmtValor(editData.valor);
+    document.getElementById('lanc-emissao').value=editData.emissao||'';
+    document.getElementById('lanc-vencimento').value=editData.vencimento||'';
+    document.getElementById('lanc-liquidacao').value=editData.liquidacao||'';
+    document.getElementById('lanc-obs').value=editData.obs||'';
+    document.getElementById('obs-count').textContent=(editData.obs||'').length+'/200';
+    setTimeout(()=>{
+      document.getElementById('lanc-banco').value=editData.banco||'';
+      document.getElementById('lanc-centro').value=editData.centro||'';
+      ssInit('ss-forn-wrap', fornSorted().filter(f=>f.ativo).map(f=>({value:f.id,label:f.nome})), editData.fornecedor);
+    },30);
+  }
+  openModal('modal-lancamento');
+}
+
+function editLanc(id,tipo){
+  const data=db.get(tipo).find(x=>x.id===id);
+  if(data) openLancamento(tipo,data);
+}
+
+function salvarLancamento(){
+  const tipo=document.getElementById('lanc-tipo').value;
+  const doc=document.getElementById('lanc-doc').value.trim();
+  const comp=document.getElementById('lanc-comp').value.trim();
+  const valor=parseValor(document.getElementById('lanc-valor').value);
+  const emis=document.getElementById('lanc-emissao').value.trim();
+  const venc=document.getElementById('lanc-vencimento').value.trim();
+  const liq=document.getElementById('lanc-liquidacao').value.trim();
+  const fornId=document.getElementById('lanc-fornecedor-id').value;  // hidden field from searchable select
+  const banco=document.getElementById('lanc-banco').value;
+  const cc=document.getElementById('lanc-centro').value;
+  const obs=document.getElementById('lanc-obs').value.trim();
+
+  const errs=[];
+  if(!doc)errs.push('Número do documento');
+  if(!comp||comp.length<7)errs.push('Competência (mm/aaaa)');
+  if(!valor)errs.push('Valor');
+  if(!emis||emis.length<10)errs.push('Data de emissão (dd/mm/aaaa)');
+  if(!venc||venc.length<10)errs.push('Data de vencimento (dd/mm/aaaa)');
+  if(!fornId)errs.push('Fornecedor / Pagador');
+  if(!banco)errs.push('Banco');
+  if(!cc)errs.push('Centro de custo');
+  if(errs.length){alert('Preencha os campos obrigatórios:\n• '+errs.join('\n• '));return;}
+
+  const list=db.get(tipo);
+  const editId=parseInt(document.getElementById('lanc-edit-id').value)||0;
+  const prevStatus=list.find(x=>x.id===editId)?.status||'pendente';
+  const status=liq?(tipo==='pagar'?'pago':'recebido'):(['pago','recebido'].includes(prevStatus)?prevStatus:'pendente');
+  const obj={doc,comp,valor,emissao:emis,vencimento:venc,liquidacao:liq,fornecedor:parseInt(fornId),banco:parseInt(banco),centro:parseInt(cc),obs,status};
+
+  if(editId){const idx=list.findIndex(x=>x.id===editId);if(idx>=0)list[idx]={...obj,id:editId};}
+  else{list.push({...obj,id:db.nextId(list)});}
+  db.set(tipo,list);
+  closeModal('modal-lancamento');
+  if(tipo==='receber')renderReceber();else renderPagar();
+}
+
+// ============================================================
+// LIQUIDAR
+// ============================================================
+function abrirLiquidar(id,tipo){
+  const item=db.get(tipo).find(x=>x.id===id);if(!item)return;
+  document.getElementById('liq-id').value=id;
+  document.getElementById('liq-tipo').value=tipo;
+  document.getElementById('modal-liq-title').textContent=tipo==='pagar'?'✅ Liquidar — Conta a Pagar':'✅ Liquidar — Conta a Receber';
+  document.getElementById('liq-info').innerHTML=`<strong>${nomeForn(item.fornecedor)}</strong> — Doc: ${item.doc}<br>Vencimento: <strong>${item.vencimento}</strong> — Valor: <strong>${R(item.valor)}</strong>`;
+  document.getElementById('liq-data').value=todayStr();
+  document.getElementById('liq-obs').value='';
+  const sel=document.getElementById('liq-banco');
+  sel.innerHTML='<option value="">— Selecione —</option>'+db.get('bancos').filter(b=>b.ativo).map(b=>`<option value="${b.id}">${b.nome}</option>`).join('');
+  if(item.banco)sel.value=item.banco;
+  openModal('modal-liquidar');
+}
+function confirmarLiquidacao(){
+  const id=parseInt(document.getElementById('liq-id').value);
+  const tipo=document.getElementById('liq-tipo').value;
+  const data=document.getElementById('liq-data').value.trim();
+  const banco=document.getElementById('liq-banco').value;
+  const obs=document.getElementById('liq-obs').value.trim();
+  if(!data||data.length<10){alert('Informe a data de liquidação.');return;}
+  const list=db.get(tipo);
+  const item=list.find(x=>x.id===id);if(!item)return;
+  item.liquidacao=data;
+  item.status=tipo==='pagar'?'pago':'recebido';
+  if(banco)item.banco=parseInt(banco);
+  if(obs)item.obs=(item.obs?item.obs+' | ':'')+obs;
+  db.set(tipo,list);
+  closeModal('modal-liquidar');
+  if(tipo==='receber')renderReceber();else renderPagar();
+}
+
+// ============================================================
+// UPDATE SELECTS (bancos, centros — fornecedor usa searchable)
+// ============================================================
+function updateSelects(){
+  const bancos=db.get('bancos').filter(b=>b.ativo);
+  const centros=db.get('centros').filter(c=>c.ativo);
+
+  // Populate fornecedor filter for centro custo report (alphabetical)
+  const fornSel=document.getElementById('cc-forn-fil');
+  if(fornSel){const curF=fornSel.value;fornSel.innerHTML='<option value="">Todos os fornecedores</option>'+fornSorted().map(f=>`<option value="${f.id}">${f.nome}</option>`).join('');if(curF)fornSel.value=curF;}
+  // Populate centro filter for centro custo report
+  const ccSel=document.getElementById('cc-centro-fil');
+  if(ccSel){const curCC=ccSel.value;const centros2=db.get('centros');ccSel.innerHTML='<option value="">Todos os centros</option>'+centros2.map(c=>`<option value="${c.id}">${c.codigo} — ${c.descricao}</option>`).join('');if(curCC)ccSel.value=curCC;}
+
+  ['lanc-banco','liq-banco','rel-banco','fluxo-banco'].forEach(sid=>{
+    const sel=document.getElementById(sid);if(!sel)return;
+    const cur=sel.value;
+    const placeholder=sel.options[0]?.value===''?sel.options[0].text:'— Selecione —';
+    sel.innerHTML=`<option value="">${placeholder}</option>`+bancos.map(b=>`<option value="${b.id}">${b.nome}</option>`).join('');
+    if(cur)sel.value=cur;
+  });
+  const selC=document.getElementById('lanc-centro');
+  if(selC){const cur=selC.value;selC.innerHTML='<option value="">— Selecione —</option>'+centros.map(c=>`<option value="${c.id}">${c.codigo} — ${c.descricao}</option>`).join('');if(cur)selC.value=cur;}
+}
+
+// ============================================================
+// FLUXO DE CAIXA PROJETADO
+// ============================================================
+function initFluxo(){
+  updateSelects();
+  // Set default period: today to +60 days
+  const today=new Date(), end=new Date();
+  end.setDate(end.getDate()+60);
+  const fmt=d=>String(d.getDate()).padStart(2,'0')+'/'+String(d.getMonth()+1).padStart(2,'0')+'/'+d.getFullYear();
+  document.getElementById('fluxo-di').value=fmt(today);
+  document.getElementById('fluxo-df').value=fmt(end);
+  renderFluxo();
+}
+
+function renderFluxo(){
+  const diStr=document.getElementById('fluxo-di').value.trim();
+  const dfStr=document.getElementById('fluxo-df').value.trim();
+  const bancoFiltro=document.getElementById('fluxo-banco').value;
+  const mostrar=document.getElementById('fluxo-filtro').value;
+
+  const diKey=diStr.length===10?dateKey(diStr):'00000000';
+  const dfKey=dfStr.length===10?dateKey(dfStr):'99999999';
+
+  // Saldo inicial: soma de todos os bancos (ou banco selecionado)
+  const bancos=db.get('bancos').filter(b=>b.ativo&&(!bancoFiltro||b.id==bancoFiltro));
+  const saldoBase=bancos.reduce((s,b)=>s+saldoAtualBanco(b),0);
+
+  // Filtra lançamentos por período de vencimento
+  const filtrar=(item)=>{
+    if(bancoFiltro&&item.banco!=bancoFiltro)return false;
+    const liq=item.status==='pago'||item.status==='recebido';
+    if(mostrar==='pendente'&&liq)return false;
+    const k=dateKey(item.vencimento);
+    return k>=diKey&&k<=dfKey;
+  };
+
+  const receber=db.get('receber').filter(filtrar).map(x=>({...x,_tipo:'receber'}));
+  const pagar  =db.get('pagar').filter(filtrar).map(x=>({...x,_tipo:'pagar'}));
+
+  const movs=[...receber,...pagar].sort((a,b)=>dateKey(a.vencimento)>dateKey(b.vencimento)?1:-1);
+
+  // KPIs
+  const totalRec=receber.reduce((s,x)=>s+x.valor,0);
+  const totalPag=pagar.reduce((s,x)=>s+x.valor,0);
+  const saldoFinal=saldoBase+totalRec-totalPag;
+
+  document.getElementById('kpi-fluxo').innerHTML=`
+    <div class="kpi green"><div class="lbl">Saldo atual ${bancoFiltro?'(banco selecionado)':'(todos os bancos)'}</div><div class="val">${R(saldoBase)}</div></div>
+    <div class="kpi green"><div class="lbl">Total a receber (período)</div><div class="val">${R(totalRec)}</div></div>
+    <div class="kpi red"><div class="lbl">Total a pagar (período)</div><div class="val">${R(totalPag)}</div></div>
+    <div class="kpi ${saldoFinal<0?'warn':'green'}"><div class="lbl">Saldo projetado final</div><div class="val ${saldoFinal<0?'saldo-neg':'saldo-pos'}">${R(saldoFinal)}</div><div class="hint">${saldoFinal<0?'⚠️ Necessidade de capital!':'✅ Saldo suficiente'}</div></div>
+  `;
+
+  if(!movs.length){
+    document.getElementById('fluxo-area').innerHTML='<div class="inline-alert ia-info"><span>ℹ️</span><div>Nenhum lançamento encontrado para o período informado.</div></div>';
+    return;
+  }
+
+  // Build table with running balance
+  let saldoCorrente=saldoBase;
+  let hasDanger=false;
+  const rows=[];
+  let lastDate='';
+
+  movs.forEach(m=>{
+    const isRec=m._tipo==='receber';
+    const liqStatus=m.status==='pago'||m.status==='recebido';
+    const st=calcStatus(m,m._tipo);
+
+    // Only update projected balance for all (pending considered as future impact)
+    saldoCorrente+=isRec?m.valor:-m.valor;
+    const negativo=saldoCorrente<0;
+    if(negativo)hasDanger=true;
+
+    // Date separator
+    const dateChanged=m.vencimento!==lastDate;
+    if(dateChanged&&lastDate!==''){
+      // no separator row, just visual
+    }
+    lastDate=m.vencimento;
+
+    const saldoClass=negativo?'saldo-neg':'saldo-pos';
+    const rowClass=negativo?'fluxo-row-negativo':(isRec?'fluxo-row-entrada':'fluxo-row-saida');
+    const tipoIcon=isRec?'📥':'📤';
+    const tipoLabel=isRec?'A Receber':'A Pagar';
+
+    rows.push(`<tr class="${rowClass}">
+      <td class="nowrap fw7" style="${dateChanged?'border-top:2px solid #e8e8f2':''}">${m.vencimento}</td>
+      <td>${tipoIcon} <span class="badge ${isRec?'b-green':'b-red'}">${tipoLabel}</span></td>
+      <td class="fw7">${m.doc}</td>
+      <td>${nomeForn(m.fornecedor)}</td>
+      <td class="nowrap" title="${nomeBanco(m.banco)}">${nomeBancoShort(m.banco)}</td>
+      <td title="${nomeCentroFull(m.centro)}">${nomeCentro(m.centro)}</td>
+      <td>${m.comp}</td>
+      <td style="max-width:180px;white-space:normal;font-size:11px;color:#888">${m.obs||''}</td>
+      <td class="text-right ${isRec?'saldo-pos':'saldo-neg'} fw7">${isRec?'+':'-'}${R(m.valor)}</td>
+      <td class="text-right">${statusBadge(st)}</td>
+      <td class="text-right fw7 saldo-col ${saldoClass}">${R(saldoCorrente)}</td>
+    </tr>`);
+  });
+
+  const alertHtml=hasDanger
+    ?'<div class="inline-alert ia-danger"><span>⚠️</span><div><strong>Atenção!</strong> Em algum ponto do período o saldo projetado fica negativo (linhas destacadas em vermelho). Verifique a necessidade de capital adicional ou renegociação de prazos.</div></div>'
+    :'<div class="inline-alert ia-ok"><span>✅</span><div>O saldo projetado permanece positivo durante todo o período. Não há necessidade de capital externo identificada.</div></div>';
+
+  document.getElementById('fluxo-area').innerHTML=`
+    ${alertHtml}
+    <div class="panel">
+      <div class="panel-hd flex-between">
+        <h2>Projeção linha a linha — por data de vencimento</h2>
+        <div class="flex gap8">
+          <span style="font-size:12px;color:#888"><span style="display:inline-block;width:12px;height:12px;background:#f0fdf6;border:1px solid #ccc;border-radius:2px;vertical-align:middle;margin-right:4px"></span>Entrada</span>
+          <span style="font-size:12px;color:#888"><span style="display:inline-block;width:12px;height:12px;background:#fdf5f0;border:1px solid #ccc;border-radius:2px;vertical-align:middle;margin-right:4px"></span>Saída</span>
+          <span style="font-size:12px;color:#888"><span style="display:inline-block;width:12px;height:12px;background:#fff0ec;border:1px solid #ccc;border-radius:2px;vertical-align:middle;margin-right:4px"></span>Saldo negativo</span>
+        </div>
+      </div>
+      <div class="panel-body nop tbl-wrap">
+        <table class="fluxo-table">
+          <thead><tr>
+            <th>Vencimento</th><th>Tipo</th><th>Nº Doc</th><th>Fornecedor / Pagador</th>
+            <th>Banco</th><th>C. Custo</th><th>Competência</th><th>Observação</th>
+            <th class="text-right">Valor</th><th>Status</th><th class="text-right">Saldo Projetado</th>
+          </tr></thead>
+          <tbody>
+            <tr class="fluxo-abertura">
+              <td colspan="10" class="fw7">🏦 Saldo atual — ${bancoFiltro?nomeBanco(parseInt(bancoFiltro)):'Todos os bancos consolidados'}</td>
+              <td class="text-right fw7 ${saldoBase>=0?'saldo-pos':'saldo-neg'}">${R(saldoBase)}</td>
+            </tr>
+            ${rows.join('')}
+            <tr style="background:#1c1c2e">
+              <td colspan="10" style="color:#fff;font-weight:700;font-size:13px">💰 Saldo final projetado</td>
+              <td class="text-right fw7 ${saldoFinal>=0?'saldo-pos':'saldo-neg'}" style="font-size:14px">${R(saldoFinal)}</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  `;
+}
+
+// ============================================================
+// CONCILIAÇÃO BANCÁRIA
+// ============================================================
+function initConciliacao(){updateSelects();document.getElementById('relatorio-area').innerHTML='';}
+
+function gerarRelatorio(){
+  const bancoId=parseInt(document.getElementById('rel-banco').value)||0;
+  const diStr=document.getElementById('rel-di').value.trim();
+  const dfStr=document.getElementById('rel-df').value.trim();
+  const compStr=document.getElementById('rel-comp').value.trim();
+  if(!bancoId){alert('Selecione um banco.');return;}
+  if(!diStr&&!dfStr&&!compStr){alert('Informe um período (datas ou competência).');return;}
+  const banco=db.get('bancos').find(b=>b.id===bancoId);if(!banco)return;
+  const diKey=diStr.length===10?dateKey(diStr):'00000000';
+  const dfKey=dfStr.length===10?dateKey(dfStr):'99999999';
+  const filtra=item=>{
+    if(item.banco!==bancoId)return false;
+    const liqKey=item.liquidacao?dateKey(item.liquidacao):dateKey(item.vencimento);
+    if(compStr&&item.comp!==compStr)return false;
+    if(diStr||dfStr)return liqKey>=diKey&&liqKey<=dfKey;
+    return true;
+  };
+  const receber=db.get('receber').filter(filtra);
+  const pagar=db.get('pagar').filter(filtra);
+  const movs=[...receber.map(x=>({...x,_tipo:'receber',_data:x.liquidacao||x.vencimento})),...pagar.map(x=>({...x,_tipo:'pagar',_data:x.liquidacao||x.vencimento}))].sort((a,b)=>dateKey(a._data)>dateKey(b._data)?1:-1);
+  let saldo=banco.saldoInicial;
+  const rows=movs.map(m=>{
+    const isRec=m._tipo==='receber';
+    const liq=m.status==='recebido'||m.status==='pago';
+    if(liq)saldo+=isRec?m.valor:-m.valor;
+    const cc=db.get('centros').find(c=>c.id===m.centro);
+    const forn=db.get('fornecedores').find(f=>f.id===m.fornecedor);
+    return `<tr class="${isRec?'cr':'db'}">
+      <td class="nowrap">${m._data}</td><td class="nowrap fw7">${m.doc}</td>
+      <td>${forn?.nome||'—'}</td><td>${m.comp}</td>
+      <td class="nowrap">${m.emissao}</td><td class="nowrap">${m.vencimento}</td>
+      <td class="nowrap">${m.liquidacao||'—'}</td>
+      <td>${cc?cc.codigo:'—'}</td>
+      <td style="max-width:180px;white-space:normal;font-size:11px">${m.obs||''}</td>
+      <td class="text-right ${isRec?'saldo-pos':''}">${isRec?R(m.valor):''}</td>
+      <td class="text-right ${!isRec?'saldo-neg':''}">${!isRec?R(m.valor):''}</td>
+      <td class="text-right">${statusBadge(m.status)}</td>
+      <td class="text-right fw7 ${saldo>=0?'saldo-pos':'saldo-neg'}">${liq?R(saldo):'—'}</td>
+    </tr>`;
+  });
+  const totalRec=receber.filter(x=>x.status==='recebido').reduce((s,x)=>s+x.valor,0);
+  const totalPag=pagar.filter(x=>x.status==='pago').reduce((s,x)=>s+x.valor,0);
+  const saldoFinal=banco.saldoInicial+totalRec-totalPag;
+  const periodo=compStr?`Competência: ${compStr}`:`${diStr||'início'} a ${dfStr||'hoje'}`;
+  document.getElementById('relatorio-area').innerHTML=`
+    <div class="panel">
+      <div class="panel-hd" style="flex-wrap:wrap;gap:10px">
+        <div><h2 style="font-size:14px">📊 Conciliação Bancária — ${banco.nome}</h2><div class="muted" style="margin-top:3px">${periodo} · Gerado em ${todayStr()}</div></div>
+        <div class="flex gap8" style="flex-wrap:wrap">
+          <div style="font-size:12px;background:#f8f8fc;padding:8px 14px;border-radius:8px;border:1px solid #eee">Saldo inicial: <strong>${R(banco.saldoInicial)}</strong></div>
+          <div style="font-size:12px;background:#f8f8fc;padding:8px 14px;border-radius:8px;border:1px solid #eee">Entradas: <strong class="saldo-pos">${R(totalRec)}</strong></div>
+          <div style="font-size:12px;background:#f8f8fc;padding:8px 14px;border-radius:8px;border:1px solid #eee">Saídas: <strong class="saldo-neg">${R(totalPag)}</strong></div>
+          <div style="font-size:13px;background:#1c1c2e;color:#fff;padding:8px 16px;border-radius:8px;font-weight:700">Saldo: <span class="${saldoFinal>=0?'saldo-pos':'saldo-neg'}">${R(saldoFinal)}</span></div>
+        </div>
+      </div>
+      <div class="panel-body nop tbl-wrap">
+        <table class="report-table">
+          <thead><tr><th>Dt. Ref.</th><th>Nº Documento</th><th>Fornecedor</th><th>Competência</th><th>Emissão</th><th>Vencimento</th><th>Liquidação</th><th>C. Custo</th><th>Observação</th><th class="text-right">Entradas</th><th class="text-right">Saídas</th><th>Status</th><th class="text-right">Saldo</th></tr></thead>
+          <tbody>
+            <tr style="background:#f0f0f8"><td colspan="12" class="fw7" style="font-size:11px;color:#888;text-transform:uppercase">Saldo inicial</td><td class="text-right fw7 ${banco.saldoInicial>=0?'saldo-pos':'saldo-neg'}">${R(banco.saldoInicial)}</td></tr>
+            ${rows.length?rows.join(''):'<tr><td colspan="13" class="tbl-empty">Nenhuma movimentação encontrada.</td></tr>'}
+            <tr class="saldo-row"><td colspan="9" class="fw7" style="text-transform:uppercase;letter-spacing:.5px">Saldo final</td><td class="text-right">${R(totalRec)}</td><td class="text-right">${R(totalPag)}</td><td></td><td class="text-right ${saldoFinal>=0?'saldo-pos':'saldo-neg'}">${R(saldoFinal)}</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+    <div class="inline-alert ia-info"><span>ℹ️</span><div><strong>Legenda:</strong> 🟢 Verde claro = Contas a Receber · 🟠 Laranja claro = Contas a Pagar · Saldo exibido apenas para lançamentos liquidados.</div></div>
+  `;
+}
+
+// ============================================================
+// RELATÓRIO POR CENTRO DE CUSTO
+// ============================================================
+function initCentroCusto(){
+  updateSelects();
+  document.getElementById('cc-area').innerHTML='';
+  document.getElementById('kpi-cc').innerHTML='';
+}
+
+function gerarRelatorioCentro(){
+  const diStr=document.getElementById('cc-di').value.trim();
+  const dfStr=document.getElementById('cc-df').value.trim();
+  const compStr=document.getElementById('cc-comp').value.trim();
+  const statusFil=document.getElementById('cc-status').value;
+  const centroFil=parseInt(document.getElementById('cc-centro-fil').value)||0;
+  const fornFil=parseInt(document.getElementById('cc-forn-fil').value)||0;
+
+  if(!diStr&&!dfStr&&!compStr){alert('Informe ao menos uma data ou competência para filtrar.');return;}
+
+  const diKey=diStr.length===10?dateKey(diStr):'00000000';
+  const dfKey=dfStr.length===10?dateKey(dfStr):'99999999';
+
+  const filtra=(item,tipo)=>{
+    const st=calcStatus(item,tipo);
+    if(statusFil&&st!==statusFil)return false;
+    if(centroFil&&item.centro!==centroFil)return false;
+    if(fornFil&&item.fornecedor!==fornFil)return false;
+    if(compStr&&item.comp!==compStr)return false;
+    const k=dateKey(item.vencimento);
+    return k>=diKey&&k<=dfKey;
+  };
+
+  const receber=db.get('receber').filter(x=>filtra(x,'receber')).map(x=>({...x,_tipo:'receber'}));
+  const pagar  =db.get('pagar').filter(x=>filtra(x,'pagar')).map(x=>({...x,_tipo:'pagar'}));
+  const movs=[...receber,...pagar];
+
+  if(!movs.length){
+    document.getElementById('kpi-cc').innerHTML='';
+    document.getElementById('cc-area').innerHTML='<div class="inline-alert ia-info"><span>ℹ️</span><div>Nenhum lançamento encontrado para os filtros informados.</div></div>';
+    return;
+  }
+
+  // KPIs globais
+  const totRec=receber.reduce((s,x)=>s+x.valor,0);
+  const totPag=pagar.reduce((s,x)=>s+x.valor,0);
+  const resultado=totRec-totPag;
+  const nCC=[...new Set(movs.map(x=>x.centro))].length;
+
+  document.getElementById('kpi-cc').innerHTML=`
+    <div class="kpi"><div class="lbl">Centros com movimento</div><div class="val">${nCC}</div><div class="hint">${movs.length} lançamentos</div></div>
+    <div class="kpi green"><div class="lbl">Total entradas</div><div class="val">${R(totRec)}</div></div>
+    <div class="kpi red"><div class="lbl">Total saídas</div><div class="val">${R(totPag)}</div></div>
+    <div class="kpi ${resultado>=0?'green':'warn'}"><div class="lbl">Resultado líquido</div><div class="val ${resultado>=0?'saldo-pos':'saldo-neg'}">${R(resultado)}</div><div class="hint">${resultado>=0?'Superávit':'Déficit'}</div></div>
+  `;
+
+  // Agrupa por centro de custo
+  const centros=db.get('centros');
+  const grupos={};
+  movs.forEach(m=>{
+    const ccId=m.centro||0;
+    if(!grupos[ccId])grupos[ccId]=[];
+    grupos[ccId].push(m);
+  });
+
+  // Ordena grupos pelo código do CC
+  const gruposOrdenados=Object.keys(grupos).sort((a,b)=>{
+    const ca=centros.find(c=>c.id==a)?.codigo||'';
+    const cb=centros.find(c=>c.id==b)?.codigo||'';
+    return ca.localeCompare(cb);
+  });
+
+  const periodo=compStr?`Competência: ${compStr}`:`${diStr||'início'} a ${dfStr||'hoje'}`;
+  let html=`<div style="font-size:11px;color:#aaa;margin-bottom:10px">Gerado em ${todayStr()} · ${periodo}${fornFil?' · Fornecedor: '+nomeForn(fornFil):''}</div>`;
+
+  let grandRec=0,grandPag=0;
+
+  gruposOrdenados.forEach(ccId=>{
+    const cc=centros.find(c=>c.id==parseInt(ccId));
+    const items=grupos[ccId].sort((a,b)=>dateKey(a.vencimento)>dateKey(b.vencimento)?1:-1);
+    const ccRec=items.filter(x=>x._tipo==='receber').reduce((s,x)=>s+x.valor,0);
+    const ccPag=items.filter(x=>x._tipo==='pagar').reduce((s,x)=>s+x.valor,0);
+    const ccRes=ccRec-ccPag;
+    grandRec+=ccRec; grandPag+=ccPag;
+
+    const ccLabel=cc?`${cc.codigo} — ${cc.descricao}`:'Sem centro de custo';
+    const ccTipo=cc?.tipo||'';
+    const tipoBadge=ccTipo?`<span class="badge ${ccTipo==='Receita'?'b-green':ccTipo==='Ambos'?'b-blue':'b-red'}" style="font-size:10px">${ccTipo}</span>`:'';
+
+    const rows=items.map(m=>{
+      const isRec=m._tipo==='receber';
+      const st=calcStatus(m,m._tipo);
+      return `<tr class="${isRec?'cr':'db'}">
+        <td class="nowrap">${m.vencimento}</td>
+        <td>${isRec?'📥 <span class="badge b-green" style="font-size:10px">Entrada</span>':'📤 <span class="badge b-red" style="font-size:10px">Saída</span>'}</td>
+        <td class="fw7 nowrap">${m.doc}</td>
+        <td>${nomeForn(m.fornecedor)}</td>
+        <td>${m.comp}</td>
+        <td class="nowrap">${m.emissao}</td>
+        <td class="nowrap" style="${st==='vencido'?'color:#c03020;font-weight:600':''}">${m.vencimento}</td>
+        <td class="nowrap">${m.liquidacao||'—'}</td>
+        <td class="nowrap" title="${nomeBanco(m.banco)}">${nomeBancoShort(m.banco)}</td>
+        <td style="max-width:160px;white-space:normal;font-size:11px;color:#888">${m.obs||''}</td>
+        <td class="text-right ${isRec?'saldo-pos':''}">${isRec?R(m.valor):''}</td>
+        <td class="text-right ${!isRec?'saldo-neg':''}">${!isRec?R(m.valor):''}</td>
+        <td class="text-right">${statusBadge(st)}</td>
+      </tr>`;
+    }).join('');
+
+    html+=`
+      <div class="panel" style="margin-bottom:18px">
+        <div class="panel-hd" style="background:#f4f4fb">
+          <div>
+            <h2 style="font-size:13px">🏷️ ${ccLabel} ${tipoBadge}</h2>
+            <div class="muted" style="margin-top:3px">${items.length} lançamento(s)</div>
+          </div>
+          <div class="flex gap8" style="flex-wrap:wrap">
+            <div style="font-size:12px;background:#fff;padding:7px 14px;border-radius:8px;border:1px solid #eee">Entradas: <strong class="saldo-pos">${R(ccRec)}</strong></div>
+            <div style="font-size:12px;background:#fff;padding:7px 14px;border-radius:8px;border:1px solid #eee">Saídas: <strong class="saldo-neg">${R(ccPag)}</strong></div>
+            <div style="font-size:12px;background:#1c1c2e;color:#fff;padding:7px 14px;border-radius:8px;font-weight:700">Resultado: <span class="${ccRes>=0?'saldo-pos':'saldo-neg'}">${R(ccRes)}</span></div>
+          </div>
+        </div>
+        <div class="panel-body nop tbl-wrap">
+          <table class="report-table">
+            <thead><tr>
+              <th>Vencimento</th><th>Tipo</th><th>Nº Doc</th><th>Fornecedor</th>
+              <th>Competência</th><th>Emissão</th><th>Vencimento</th><th>Liquidação</th>
+              <th>Banco</th><th>Observação</th>
+              <th class="text-right">Entradas</th><th class="text-right">Saídas</th><th>Status</th>
+            </tr></thead>
+            <tbody>
+              ${rows}
+              <tr class="saldo-row">
+                <td colspan="10" class="fw7" style="text-transform:uppercase;letter-spacing:.5px;font-size:11px">Subtotal — ${ccLabel}</td>
+                <td class="text-right">${R(ccRec)}</td>
+                <td class="text-right">${R(ccPag)}</td>
+                <td class="text-right ${ccRes>=0?'saldo-pos':'saldo-neg'} fw7">${R(ccRes)}</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    `;
+  });
+
+  // Total geral
+  const grandRes=grandRec-grandPag;
+  html+=`
+    <div class="panel" style="border:2px solid #1c1c2e">
+      <div class="panel-hd" style="background:#1c1c2e">
+        <h2 style="color:#fff;font-size:14px">💰 Total Geral</h2>
+        <div class="flex gap8" style="flex-wrap:wrap">
+          <div style="font-size:12px;background:#2c2c42;padding:7px 14px;border-radius:8px;color:#a0a0d0">Entradas: <strong class="saldo-pos">${R(grandRec)}</strong></div>
+          <div style="font-size:12px;background:#2c2c42;padding:7px 14px;border-radius:8px;color:#a0a0d0">Saídas: <strong class="saldo-neg">${R(grandPag)}</strong></div>
+          <div style="font-size:13px;background:#e05c1a;color:#fff;padding:7px 16px;border-radius:8px;font-weight:700">Resultado: ${R(grandRes)}</div>
+        </div>
+      </div>
+    </div>
+    <div class="inline-alert ia-info mt8"><span>ℹ️</span><div><strong>Legenda:</strong> 🟢 Verde = Entradas (A Receber) · 🟠 Laranja = Saídas (A Pagar) · Resultado = Entradas − Saídas por centro.</div></div>
+  `;
+
+  document.getElementById('cc-area').innerHTML=html;
+}
+
+// ============================================================
+// EXCLUIR
+// ============================================================
+function excluir(key,id,renderFn){
+  if(!confirm('Excluir este registro? Esta ação não pode ser desfeita.'))return;
+  db.set(key,db.get(key).filter(x=>x.id!==id));
+  if(typeof renderFn==='function')renderFn();
+  else if(typeof renderFn==='string')eval(renderFn+'()');
+}
+
+// ============================================================
+// INIT
+// ============================================================
+seed();
+updateSelects();
+document.getElementById('topbar-date').textContent=new Date().toLocaleDateString('pt-BR',{weekday:'long',day:'2-digit',month:'2-digit',year:'numeric'});
+renderBancos();
+</script>
+</body>
+</html>
