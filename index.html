@@ -639,15 +639,16 @@ const K = { bancos:'fin_bancos', fornecedores:'fin_forn', centros:'fin_cc', rece
 let _cache = { bancos:[], fornecedores:[], centros:[], receber:[], pagar:[] };
 let _fsdb = null; // Firestore instance
 let _fbReady = false;
+let _lastWrite = 0;
 
 const db = {
   get: k => _cache[k] || [],
   set: (k, v) => {
     _cache[k] = v;
+    localStorage.setItem(K[k], JSON.stringify(v));
     if (_fsdb) {
+      _lastWrite = Date.now();
       _fsdb.collection('pizzaos').doc('dados').set({ [k]: v }, { merge: true }).catch(console.error);
-    } else {
-      localStorage.setItem(K[k], JSON.stringify(v));
     }
   },
   nextId: arr => arr.length ? Math.max(0,...arr.map(x=>x.id||0))+1 : 1
@@ -678,13 +679,40 @@ async function initStorage() {
     }
     _fbReady = true;
 
-    // Real-time listener — updates cache + re-renders current screen on remote change
+    // Real-time listener — updates cache + localStorage + re-renders on remote change
     _fsdb.collection('pizzaos').doc('dados').onSnapshot(snap => {
-      if (!snap.metadata.hasPendingWrites && snap.exists) {
+      if (snap.exists) {
         const data = snap.data();
-        Object.keys(_cache).forEach(k => { if (data[k] !== undefined) _cache[k] = data[k]; });
-        renderScreen(_cur);
-        updateSelects();
+        Object.keys(_cache).forEach(k => {
+          if (data[k] !== undefined) {
+            _cache[k] = data[k];
+            localStorage.setItem(K[k], JSON.stringify(data[k]));
+          }
+        });
+        // Only re-render if change came from another device (not our own write < 3s ago)
+        if (Date.now() - _lastWrite > 3000) {
+          renderScreen(_cur);
+          updateSelects();
+        }
+      }
+    }, err => console.error('Firestore snapshot error:', err));
+
+    // Refresh data when tab regains focus (catches missed updates)
+    document.addEventListener('visibilitychange', () => {
+      if (!document.hidden && _fsdb) {
+        _fsdb.collection('pizzaos').doc('dados').get().then(snap => {
+          if (snap.exists) {
+            const data = snap.data();
+            Object.keys(_cache).forEach(k => {
+              if (data[k] !== undefined) {
+                _cache[k] = data[k];
+                localStorage.setItem(K[k], JSON.stringify(data[k]));
+              }
+            });
+            renderScreen(_cur);
+            updateSelects();
+          }
+        }).catch(console.error);
       }
     });
 
