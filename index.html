@@ -437,7 +437,7 @@ tbody tr:hover td{background:#fafafe}
       <div class="form-row cols3">
         <div class="fg"><label>Agência</label><input id="banco-agencia" placeholder="0000-0"></div>
         <div class="fg"><label>Conta</label><input id="banco-conta" placeholder="00000-0"></div>
-        <div class="fg"><label class="field-req">Saldo inicial (R$)</label><input id="banco-saldo" type="text" placeholder="0,00" oninput="maskValor(this)"></div>
+        <div class="fg"><label class="field-req">Saldo inicial (R$)</label><input id="banco-saldo" type="text" placeholder="0,00" oninput="maskValorNeg(this)"></div>
       </div>
       <div class="form-row cols2">
         <div class="fg"><label>Código do banco</label><input id="banco-codigo" placeholder="Ex: 237"></div>
@@ -781,6 +781,14 @@ function maskValor(el) {
   v=String(parseInt(v,10));
   while(v.length<3)v='0'+v;
   el.value=v.slice(0,-2).replace(/\B(?=(\d{3})+(?!\d))/g,'.')+','+v.slice(-2);
+}
+function maskValorNeg(el) {
+  const neg=el.value.trimStart().startsWith("-");
+  let v=el.value.replace(/[^\d]/g,"");
+  if(!v){el.value=neg?"-":"";return;}
+  v=String(parseInt(v,10));
+  while(v.length<3)v="0"+v;
+  el.value=(neg?"-":"")+v.slice(0,-2).replace(/\B(?=(\d{3})+(?!\d))/g,".")+","+v.slice(-2);
 }
 function parseValor(s){return parseFloat((s||'0').replace(/\./g,'').replace(',','.'))||0;}
 function fmtValor(n){return (n||0).toLocaleString('pt-BR',{minimumFractionDigits:2,maximumFractionDigits:2});}
