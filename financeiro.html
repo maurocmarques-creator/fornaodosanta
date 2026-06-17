@@ -147,6 +147,21 @@ tbody tr:hover td{background:#fafafe}
 .fluxo-row-saida td{background:#fdf5f0}
 .fluxo-row-saldo td{background:#f8f8fc;font-weight:700;font-size:12px}
 .fluxo-row-negativo td{background:#fff0ec!important}
+
+/* DRE */
+.dre-tbl{border-collapse:collapse;width:100%}
+.dre-tbl th,.dre-tbl td{padding:9px 14px;font-size:12.5px;white-space:nowrap;border-bottom:1px solid #f0f0f8}
+.dre-tbl th{background:#1c1c2e;color:#a0a0d0;font-weight:700;font-size:10.5px;letter-spacing:.5px;text-align:right;border-bottom:none}
+.dre-tbl th:first-child{text-align:left;min-width:230px}
+.dre-tbl td:not(:first-child){text-align:right;font-variant-numeric:tabular-nums}
+.dre-section td{background:#e8e8f8;color:#3030a0;font-weight:700;font-size:11px;text-transform:uppercase;letter-spacing:.7px;padding:7px 14px!important;border-bottom:none;border-top:6px solid #f2f3f7}
+.dre-sub td:first-child{padding-left:30px!important;color:#555}
+.dre-sub td{opacity:1}
+.dre-sub.zero{opacity:.35}
+.dre-subtotal td{background:#f0f0f8;color:#1c1c2e;font-weight:700}
+.dre-total td{background:#1c1c2e;color:#fff!important;font-weight:700;font-size:13.5px!important;padding:12px 14px!important;border-bottom:none}
+.dre-total.pos td{background:#0c6e3a!important}
+.dre-total.neg td{background:#b02010!important}
 .fluxo-row-negativo td.saldo-col{color:#c03020!important;font-weight:700}
 .saldo-pos{color:#1a7a4a;font-weight:700}
 .saldo-neg{color:#c03020;font-weight:700}
@@ -197,6 +212,10 @@ tbody tr:hover td{background:#fafafe}
     <div class="sb-item" onclick="nav('fluxo',this)"><span class="ic">📈</span> Fluxo Projetado</div>
     <div class="sb-item" onclick="nav('conciliacao',this)"><span class="ic">📊</span> Conciliação Bancária</div>
     <div class="sb-item" onclick="nav('centrocusto',this)"><span class="ic">🏷️</span> Por Centro de Custo</div>
+  </div>
+  <div class="sb-group">
+    <div class="sb-group-label">Resultado</div>
+    <div class="sb-item" onclick="nav('dre',this)"><span class="ic">📋</span> DRE</div>
   </div>
 </nav>
 
@@ -421,6 +440,33 @@ tbody tr:hover td{background:#fafafe}
         </div>
       </div>
       <div id="cc-area"></div>
+    </div>
+
+    <!-- DRE -->
+    <div class="screen" id="s-dre">
+      <div class="panel" style="margin-bottom:16px">
+        <div class="panel-hd"><h2>Filtros</h2></div>
+        <div class="panel-body">
+          <div class="form-row cols4">
+            <div class="fg">
+              <label>Ano</label>
+              <select id="dre-ano" style="padding:9px 12px;border:1.5px solid #dde0ee;border-radius:8px;font-size:13px;outline:none"></select>
+            </div>
+            <div class="fg">
+              <label>Base de cálculo</label>
+              <select id="dre-tipo" style="padding:9px 12px;border:1.5px solid #dde0ee;border-radius:8px;font-size:13px;outline:none">
+                <option value="comp">Competência (mm/aaaa)</option>
+                <option value="vencimento">Data de Vencimento</option>
+                <option value="emissao">Data de Emissão</option>
+              </select>
+            </div>
+            <div class="fg" style="display:flex;align-items:flex-end">
+              <button class="btn btn-primary" style="width:100%" onclick="renderDRE()">📋 Gerar DRE</button>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div id="dre-area"></div>
     </div>
 
   </div><!-- /content -->
@@ -865,7 +911,8 @@ const TITLES = {
   pagar:        ['Contas a Pagar',           'Lançamentos › A Pagar',           '+ Novo lançamento', '__pagar'],
   fluxo:        ['Fluxo de Caixa Projetado', 'Relatórios › Fluxo Projetado',    '', ''],
   conciliacao:  ['Conciliação Bancária',     'Relatórios › Conciliação',        '', ''],
-  centrocusto:  ['Por Centro de Custo',      'Relatórios › Centro de Custo',    '', '']
+  centrocusto:  ['Por Centro de Custo',      'Relatórios › Centro de Custo',    '', ''],
+  dre:          ['DRE',                      'Resultado › Demonstração do Resultado', '', '']
 };
 let _cur = 'bancos';
 
@@ -892,7 +939,7 @@ function topbarAction() {
 }
 
 function renderScreen(id) {
-  const map = {bancos:renderBancos,fornecedores:renderFornecedores,centros:renderCentros,receber:renderReceber,pagar:renderPagar,fluxo:initFluxo,conciliacao:initConciliacao,centrocusto:initCentroCusto};
+  const map = {bancos:renderBancos,fornecedores:renderFornecedores,centros:renderCentros,receber:renderReceber,pagar:renderPagar,fluxo:initFluxo,conciliacao:initConciliacao,centrocusto:initCentroCusto,dre:initDRE};
   if (map[id]) map[id]();
 }
 
@@ -1259,6 +1306,200 @@ function confirmarLiquidacao(){
   db.set(tipo,list);
   closeModal('modal-liquidar');
   if(tipo==='receber')renderReceber();else renderPagar();
+}
+
+// ============================================================
+// DRE — DEMONSTRAÇÃO DO RESULTADO DO EXERCÍCIO
+// ============================================================
+function dreCateg(nomeCC, isPagar) {
+  if (!nomeCC) return isPagar ? 'desp_outros' : 'rec_fatura';
+  const n = nomeCC.toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g,'');
+  if (!isPagar) {
+    if (n.includes('juro')) return 'rec_juros';
+    if (n.includes('recebimento')) return 'rec_recebimento';
+    return 'rec_fatura';
+  }
+  if (n.includes('simples')||n.includes('das ')||n==='das'||n.includes('inss')||n.includes('imposto')||n.includes('tributo')) return 'imp_simples';
+  if (n.includes('estoque')||n.includes('materia')||n.includes('mercadoria')||n.includes('insumo')||n.includes('cmv')) return 'cmv_estoque';
+  if (n.includes('pro-labore')||n.includes('prolabore')||n.includes('pro labore')) return 'cmv_prolabore';
+  if (n.includes('salario')||n.includes('folha')||n.includes('rh ')||n==='rh'||n.includes('rescisao')||n.includes('ferias')) return 'cmv_salario';
+  if (n.includes('agua')) return 'desp_agua';
+  if ((n.includes('combustivel')||n.includes('gasolina')||n.includes('etanol'))&&!n.includes('gas')) return 'desp_combustivel';
+  if (n.includes('contabilidade')||n.includes('contador')||n.includes('escritorio contabil')) return 'desp_contabilidade';
+  if (n.includes('energia')||n.includes('eletric')||(n.includes('luz')&&!n.includes('limpeza'))) return 'desp_energia';
+  if ((n.includes('gas')||n.includes('gás'))&&!n.includes('gasolina')&&!n.includes('combustivel')) return 'desp_gas';
+  if (n.includes('internet')||n.includes('banda larga')||n.includes('fibra')||n.includes('link')) return 'desp_internet';
+  if (n.includes('iptu')||n.includes('aluguel')||n.includes('locacao')) return 'desp_iptu';
+  if ((n.includes('juro')||n.includes('multa')||n.includes('encargo'))&&!n.includes('recebido')) return 'desp_juros';
+  if (n.includes('limpeza')||n.includes('higiene')||n.includes('descartavel')) return 'desp_limpeza';
+  if (n.includes('marketing')||n.includes('publicidade')||n.includes('propaganda')||n.includes('social media')) return 'desp_marketing';
+  if (n.includes('motoboy')||n.includes('entrega')||n.includes('frete')||n.includes('delivery')) return 'desp_motoboy';
+  if (n.includes('tarifa')||n.includes('bancari')) return 'desp_tarifa';
+  if (n.includes('lixo')||n.includes('coleta')||n.includes('residuo')) return 'desp_lixo';
+  if (n.includes('telefone')||n.includes('telefonia')||n.includes('celular')||n.includes('movel')) return 'desp_telefonia';
+  if (n.includes('despesa operac')) return 'cmv_despop';
+  return 'desp_outros';
+}
+
+function initDRE() {
+  const all = [...db.get('pagar'), ...db.get('receber')];
+  const anos = [...new Set(all.map(x=>(x.comp||'').split('/')[1]).filter(Boolean))].sort().reverse();
+  const curAno = new Date().getFullYear().toString();
+  const sel = document.getElementById('dre-ano');
+  if (sel) {
+    const lista = anos.length ? anos : [curAno];
+    sel.innerHTML = lista.map(a=>`<option value="${a}"${a===curAno?' selected':''}>${a}</option>`).join('');
+  }
+  renderDRE();
+}
+
+function renderDRE() {
+  const ano   = document.getElementById('dre-ano')?.value || new Date().getFullYear().toString();
+  const campo = document.getElementById('dre-tipo')?.value || 'comp';
+  const pagar   = db.get('pagar');
+  const receber = db.get('receber');
+  const centros = db.get('centros');
+  const ccNome  = {}; centros.forEach(c=>{ ccNome[c.id]=c.nome; });
+
+  function getMes(x) {
+    let d = campo==='comp' ? x.comp : (campo==='emissao' ? x.emissao : x.vencimento);
+    if (!d) return null;
+    if (campo==='comp') { const p=d.split('/'); return p.length===2&&p[1]===ano ? p[0] : null; }
+    const p=d.split('/'); return p.length===3&&p[2]===ano ? p[1] : null;
+  }
+
+  const MESES_PT = ['Jan','Fev','Mar','Abr','Mai','Jun','Jul','Ago','Set','Out','Nov','Dez'];
+  const acc = {};
+  function add(cat,mes,v){ if(!acc[cat])acc[cat]={}; acc[cat][mes]=(acc[cat][mes]||0)+v; }
+
+  receber.forEach(x=>{ const m=getMes(x); if(m) add(dreCateg(ccNome[x.centro],false),m,x.valor||0); });
+  pagar.forEach(x=>{   const m=getMes(x); if(m) add(dreCateg(ccNome[x.centro],true), m,x.valor||0); });
+
+  const todosMs = ['01','02','03','04','05','06','07','08','09','10','11','12'];
+  const mesesAtivos = todosMs.filter(m=>Object.values(acc).some(o=>(o[m]||0)!==0));
+  const cols = mesesAtivos.length ? mesesAtivos : ['01','02','03'];
+
+  function S(cats,m){ return cats.reduce((t,c)=>t+(acc[c]?.[m]||0),0); }
+  function ST(cats){ return cols.reduce((t,m)=>t+S(cats,m),0); }
+
+  const RCATS = ['rec_fatura','rec_recebimento','rec_juros'];
+  const ICATS = ['imp_simples'];
+  const CCATS = ['cmv_estoque','cmv_despop','cmv_prolabore','cmv_salario'];
+  const DCATS = ['desp_agua','desp_combustivel','desp_contabilidade','desp_energia','desp_gas','desp_internet','desp_iptu','desp_juros','desp_limpeza','desp_marketing','desp_motoboy','desp_tarifa','desp_lixo','desp_telefonia','desp_outros'];
+
+  function calc(m) {
+    const rt  = S(RCATS,m);
+    const dev = S(['devol'],m);
+    const rdv = rt - dev;
+    const imp = S(ICATS,m);
+    const liq = rdv - imp;
+    const cmv = S(CCATS,m);
+    const ro  = liq - cmv;
+    const d5  = S(DCATS,m);
+    return { rt, dev, rdv, imp, liq, cmv, ro, d5, fin: ro - d5 };
+  }
+
+  const tots = { rt:0,dev:0,rdv:0,imp:0,liq:0,cmv:0,ro:0,d5:0,fin:0 };
+  cols.forEach(m=>{ const c=calc(m); Object.keys(tots).forEach(k=>tots[k]+=c[k]); });
+
+  function fc(v, isDesp) {
+    if (v===0) return '<span style="color:#ddd;font-size:11px">—</span>';
+    if (isDesp) return `<span style="color:#888">${R(v)}</span>`;
+    return `<span style="${v<0?'color:#c03020':'color:#1a7a4a'}">${v<0?'('+R(-v)+')':R(v)}</span>`;
+  }
+  function ft(v) {
+    if (v===0) return '<span style="color:#aaa">—</span>';
+    return v<0?`<span style="color:#ffa0a0">(${R(-v)})</span>`:`<span>${R(v)}</span>`;
+  }
+
+  function subRow(label,cats,isDesp){
+    const vs = cols.map(m=>S(cats,m));
+    const tot = vs.reduce((a,b)=>a+b,0);
+    const zero = vs.every(v=>v===0);
+    return `<tr class="dre-sub${zero?' zero':''}">
+      <td>${label}</td>
+      ${vs.map(v=>`<td>${fc(v,isDesp)}</td>`).join('')}
+      <td><strong>${fc(tot,isDesp)}</strong></td>
+    </tr>`;
+  }
+  function secRow(label){
+    return `<tr class="dre-section"><td colspan="${cols.length+2}">${label}</td></tr>`;
+  }
+  function subTot(label,key){
+    const vs=cols.map(m=>calc(m)[key]);
+    const tot=tots[key];
+    return `<tr class="dre-subtotal">
+      <td><strong>${label}</strong></td>
+      ${vs.map(v=>`<td>${ft(v)}</td>`).join('')}
+      <td><strong>${ft(tot)}</strong></td>
+    </tr>`;
+  }
+  function totRow(label,key){
+    const vs=cols.map(m=>calc(m)[key]);
+    const tot=tots[key];
+    return `<tr class="dre-total ${tot>=0?'pos':'neg'}">
+      <td>${label}</td>
+      ${vs.map(v=>`<td>${ft(v)}</td>`).join('')}
+      <td>${ft(tot)}</td>
+    </tr>`;
+  }
+
+  const colHdr = cols.map(m=>`<th>${MESES_PT[parseInt(m)-1]}</th>`).join('')+'<th>TOTAL</th>';
+
+  const tbl = `
+  <div class="panel">
+    <div class="panel-hd">
+      <h2>📋 DRE por Caixa — ${ano}</h2>
+      <div class="hd-right">
+        <button class="btn btn-ghost btn-sm" onclick="window.print()">🖨️ Imprimir</button>
+      </div>
+    </div>
+    <div class="panel-body nop">
+      <div class="tbl-wrap">
+        <table class="dre-tbl">
+          <thead><tr><th>DESCRIÇÃO</th>${colHdr}</tr></thead>
+          <tbody>
+            ${secRow('1. Receita Bruta')}
+            ${subRow('1.1 Fatura / Recebimento',['rec_fatura'],false)}
+            ${subRow('1.2 Recebimento',['rec_recebimento'],false)}
+            ${subRow('1.3 Juros Recebidos',['rec_juros'],false)}
+            ${subTot('(+) Receita Total','rt')}
+            ${secRow('2. Devoluções')}
+            ${subRow('Devoluções',['devol'],true)}
+            ${subTot('(=) Receita – Devoluções','rdv')}
+            ${secRow('3. Impostos')}
+            ${subRow('3.1 Simples Nacional / DAS',['imp_simples'],true)}
+            ${totRow('(=) Receita Líquida','liq')}
+            ${secRow('4. CMV — Custo das Mercadorias e Serviços')}
+            ${subRow('4.1 Estoque / Mercadorias',['cmv_estoque'],true)}
+            ${subRow('4.2 Despesa Operacional Direta',['cmv_despop'],true)}
+            ${subRow('4.3 Pró-labore',['cmv_prolabore'],true)}
+            ${subRow('4.4 Salário / Folha de Pagamento',['cmv_salario'],true)}
+            ${totRow('(=) Resultado Operacional','ro')}
+            ${secRow('5. Despesas Operacionais')}
+            ${subRow('5.1 Água',['desp_agua'],true)}
+            ${subRow('5.2 Combustível',['desp_combustivel'],true)}
+            ${subRow('5.3 Contabilidade',['desp_contabilidade'],true)}
+            ${subRow('5.4 Energia Elétrica',['desp_energia'],true)}
+            ${subRow('5.5 Gás',['desp_gas'],true)}
+            ${subRow('5.6 Internet',['desp_internet'],true)}
+            ${subRow('5.7 IPTU / Aluguel',['desp_iptu'],true)}
+            ${subRow('5.8 Juros / Multas',['desp_juros'],true)}
+            ${subRow('5.9 Limpeza',['desp_limpeza'],true)}
+            ${subRow('5.10 Marketing',['desp_marketing'],true)}
+            ${subRow('5.11 Motoboy / Delivery',['desp_motoboy'],true)}
+            ${subRow('Tarifa Bancária',['desp_tarifa'],true)}
+            ${subRow('Taxa de Lixo',['desp_lixo'],true)}
+            ${subRow('Telefonia',['desp_telefonia'],true)}
+            ${subRow('Outros',['desp_outros'],true)}
+            ${totRow('(=) RESULTADO FINAL','fin')}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>`;
+
+  document.getElementById('dre-area').innerHTML = tbl;
 }
 
 // ============================================================
