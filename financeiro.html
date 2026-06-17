@@ -351,6 +351,16 @@ tbody tr:hover td{background:#fafafe}
               </select>
             </div>
           </div>
+          <div class="form-row cols4" style="margin-top:4px">
+            <div class="fg">
+              <label>Visualização</label>
+              <select id="fluxo-view" style="padding:9px 12px;border:1.5px solid #dde0ee;border-radius:8px;font-size:13px;outline:none">
+                <option value="detalhado">📋 Detalhado (linha a linha)</option>
+                <option value="semanal">📅 Resumo Semanal</option>
+                <option value="mensal">🗓️ Resumo Mensal</option>
+              </select>
+            </div>
+          </div>
           <div class="flex gap8">
             <button class="btn btn-primary" onclick="renderFluxo()">📈 Gerar projeção</button>
             <button class="btn btn-ghost" onclick="window.print()">🖨️ Imprimir</button>
@@ -1536,6 +1546,12 @@ function initFluxo(){
 }
 
 function renderFluxo(){
+  const view=document.getElementById('fluxo-view')?.value||'detalhado';
+  if(view==='semanal'||view==='mensal'){renderFluxoResumo(view);return;}
+  renderFluxoDetalhado();
+}
+
+function renderFluxoDetalhado(){
   const diStr=document.getElementById('fluxo-di').value.trim();
   const dfStr=document.getElementById('fluxo-df').value.trim();
   const bancoFiltro=document.getElementById('fluxo-banco').value;
@@ -1654,6 +1670,138 @@ function renderFluxo(){
               <td colspan="10" style="color:#fff;font-weight:700;font-size:13px">💰 Saldo final projetado</td>
               <td class="text-right fw7 ${saldoFinal>=0?'saldo-pos':'saldo-neg'}" style="font-size:14px">${R(saldoFinal)}</td>
             </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  `;
+}
+
+// ============================================================
+// FLUXO RESUMO (SEMANAL / MENSAL)
+// ============================================================
+function renderFluxoResumo(agrup){
+  const diStr=document.getElementById('fluxo-di').value.trim();
+  const dfStr=document.getElementById('fluxo-df').value.trim();
+  const bancoFiltro=document.getElementById('fluxo-banco').value;
+  const mostrar=document.getElementById('fluxo-filtro').value;
+
+  const diKey=diStr.length===10?dateKey(diStr):'00000000';
+  const dfKey=dfStr.length===10?dateKey(dfStr):'99999999';
+
+  const bancos=db.get('bancos').filter(b=>b.ativo&&(!bancoFiltro||b.id==bancoFiltro));
+  const saldoBase=bancos.reduce((s,b)=>s+saldoAtualBanco(b),0);
+
+  const filtrar=(item)=>{
+    if(bancoFiltro&&item.banco!=bancoFiltro)return false;
+    const liq=item.status==='pago'||item.status==='recebido';
+    if(mostrar==='pendente'&&liq)return false;
+    const k=dateKey(item.vencimento);
+    return k>=diKey&&k<=dfKey;
+  };
+
+  const receber=db.get('receber').filter(filtrar);
+  const pagar  =db.get('pagar').filter(filtrar);
+
+  function periodoKey(dateStr){
+    const p=dateStr.split('/');
+    if(p.length!==3)return 'sem-data';
+    const [dd,mm,aaaa]=p;
+    if(agrup==='mensal') return `${aaaa}-${mm}`;
+    const d=new Date(parseInt(aaaa),parseInt(mm)-1,parseInt(dd));
+    const tmp=new Date(d.getTime());
+    tmp.setHours(0,0,0,0);
+    tmp.setDate(tmp.getDate()+3-(tmp.getDay()+6)%7);
+    const week1=new Date(tmp.getFullYear(),0,4);
+    const weekNum=1+Math.round(((tmp.getTime()-week1.getTime())/86400000-3+(week1.getDay()+6)%7)/7);
+    return `${tmp.getFullYear()}-S${String(weekNum).padStart(2,'0')}`;
+  }
+
+  function periodoLabel(key){
+    if(agrup==='mensal'){
+      const [aaaa,mm]=key.split('-');
+      const MESES=['Jan','Fev','Mar','Abr','Mai','Jun','Jul','Ago','Set','Out','Nov','Dez'];
+      return `${MESES[parseInt(mm)-1]}/${aaaa}`;
+    }
+    const [ano,sw]=key.split('-');
+    const wn=parseInt(sw.slice(1));
+    const jan4=new Date(parseInt(ano),0,4);
+    const dayOfWeek=(jan4.getDay()+6)%7;
+    const monday=new Date(jan4.getTime()-dayOfWeek*86400000+(wn-1)*7*86400000);
+    const sunday=new Date(monday.getTime()+6*86400000);
+    const fmt2=d=>`${String(d.getDate()).padStart(2,'0')}/${String(d.getMonth()+1).padStart(2,'0')}`;
+    return `${sw}/${ano} (${fmt2(monday)}–${fmt2(sunday)})`;
+  }
+
+  const periodos={};
+  function addPer(p,tipo,v){
+    if(!periodos[p])periodos[p]={entradas:0,saidas:0};
+    if(tipo==='rec')periodos[p].entradas+=v;
+    else periodos[p].saidas+=v;
+  }
+  receber.forEach(x=>addPer(periodoKey(x.vencimento),'rec',x.valor));
+  pagar.forEach(x=>addPer(periodoKey(x.vencimento),'pag',x.valor));
+
+  const keys=Object.keys(periodos).sort();
+
+  if(!keys.length){
+    document.getElementById('fluxo-area').innerHTML='<div class="inline-alert ia-info"><span>ℹ️</span><div>Nenhum lançamento encontrado para o período informado.</div></div>';
+    return;
+  }
+
+  const totalRec=receber.reduce((s,x)=>s+x.valor,0);
+  const totalPag=pagar.reduce((s,x)=>s+x.valor,0);
+  const saldoFinal=saldoBase+totalRec-totalPag;
+  document.getElementById('kpi-fluxo').innerHTML=`
+    <div class="kpi ${saldoBase<0?'warn':'green'}"><div class="lbl">Saldo atual ${bancoFiltro?'(banco sel.)':'(todos)'}</div><div class="val">${R(saldoBase)}</div></div>
+    <div class="kpi green"><div class="lbl">Total a receber</div><div class="val">${R(totalRec)}</div></div>
+    <div class="kpi red"><div class="lbl">Total a pagar</div><div class="val">${R(totalPag)}</div></div>
+    <div class="kpi ${saldoFinal<0?'warn':'green'}"><div class="lbl">Saldo final projetado</div><div class="val ${saldoFinal<0?'saldo-neg':'saldo-pos'}">${R(saldoFinal)}</div><div class="hint">${saldoFinal<0?'⚠️ Necessidade de capital!':'✅ Saldo suficiente'}</div></div>
+  `;
+
+  const maxVal=keys.reduce((m,k)=>Math.max(m,periodos[k].entradas,periodos[k].saidas),0)||1;
+  const barW=Math.max(20,Math.min(60,Math.floor(760/keys.length)-6));
+  const chartH=120;
+  const svgBars=keys.map((k,i)=>{
+    const x=i*(barW+6)+4;
+    const hE=Math.round((periodos[k].entradas/maxVal)*(chartH-4));
+    const hS=Math.round((periodos[k].saidas/maxVal)*(chartH-4));
+    const lbl=agrup==='mensal'?periodoLabel(k).slice(0,6):('S'+k.split('-S')[1]);
+    return `<g><rect x="${x}" y="${chartH-hE}" width="${Math.floor(barW/2)-1}" height="${hE}" fill="#22c55e" opacity=".8" rx="2"/><rect x="${x+Math.floor(barW/2)}" y="${chartH-hS}" width="${Math.floor(barW/2)-1}" height="${hS}" fill="#ef4444" opacity=".8" rx="2"/><text x="${x+Math.floor(barW/2)}" y="${chartH+13}" text-anchor="middle" font-size="9" fill="#888">${lbl}</text></g>`;
+  }).join('');
+  const svgW=keys.length*(barW+6)+8;
+  const chartSvg=`<div style="overflow-x:auto;padding:16px 16px 0"><div style="font-size:11px;color:#888;margin-bottom:6px;display:flex;gap:16px"><span><span style="display:inline-block;width:10px;height:10px;background:#22c55e;border-radius:2px;margin-right:4px;vertical-align:middle"></span>Entradas</span><span><span style="display:inline-block;width:10px;height:10px;background:#ef4444;border-radius:2px;margin-right:4px;vertical-align:middle"></span>Saídas</span></div><svg width="${svgW}" height="${chartH+20}" xmlns="http://www.w3.org/2000/svg">${svgBars}</svg></div>`;
+
+  let saldoAcum=saldoBase;
+  let hasDanger=false;
+  const rows=keys.map(k=>{
+    const p=periodos[k];
+    const saldo=p.entradas-p.saidas;
+    saldoAcum+=saldo;
+    if(saldoAcum<0)hasDanger=true;
+    const acumCls=saldoAcum<0?'saldo-neg':'saldo-pos';
+    const saldoCls=saldo<0?'saldo-neg':'saldo-pos';
+    const rowBg=saldoAcum<0?'background:#fff0ec':'';
+    return `<tr style="${rowBg}"><td class="fw7">${periodoLabel(k)}</td><td class="text-right saldo-pos fw7">${R(p.entradas)}</td><td class="text-right saldo-neg fw7">${R(p.saidas)}</td><td class="text-right fw7 ${saldoCls}">${saldo>=0?'+':''}${R(saldo)}</td><td class="text-right fw7 ${acumCls}" style="font-size:13px">${R(saldoAcum)}</td></tr>`;
+  }).join('');
+
+  const alertHtml=hasDanger
+    ?'<div class="inline-alert ia-danger"><span>⚠️</span><div><strong>Atenção!</strong> O saldo acumulado fica negativo em algum período.</div></div>'
+    :'<div class="inline-alert ia-ok"><span>✅</span><div>Saldo acumulado positivo em todos os períodos.</div></div>';
+
+  const titulo=agrup==='mensal'?'Resumo Mensal':'Resumo Semanal';
+  document.getElementById('fluxo-area').innerHTML=`
+    ${alertHtml}
+    <div class="panel">
+      <div class="panel-hd"><h2>📊 ${titulo} — Fluxo de Caixa Projetado</h2></div>
+      ${chartSvg}
+      <div class="panel-body nop tbl-wrap">
+        <table class="fluxo-table">
+          <thead><tr><th>${agrup==='mensal'?'Mês':'Semana'}</th><th class="text-right">Entradas</th><th class="text-right">Saídas</th><th class="text-right">Saldo do Período</th><th class="text-right">Saldo Acumulado</th></tr></thead>
+          <tbody>
+            <tr class="fluxo-abertura"><td colspan="4" class="fw7">🏦 Saldo inicial — ${bancoFiltro?nomeBanco(parseInt(bancoFiltro)):'Todos os bancos'}</td><td class="text-right fw7 ${saldoBase>=0?'saldo-pos':'saldo-neg'}">${R(saldoBase)}</td></tr>
+            ${rows}
+            <tr style="background:#1c1c2e"><td colspan="4" style="color:#fff;font-weight:700;font-size:13px">💰 Saldo final projetado</td><td class="text-right fw7 ${saldoFinal>=0?'saldo-pos':'saldo-neg'}" style="font-size:14px">${R(saldoFinal)}</td></tr>
           </tbody>
         </table>
       </div>
