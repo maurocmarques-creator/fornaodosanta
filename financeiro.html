@@ -1359,92 +1359,121 @@ function renderDRE() {
   const pagar   = db.get('pagar');
   const receber = db.get('receber');
   const centros = db.get('centros');
-  const ccNome  = {}; centros.forEach(c=>{ ccNome[c.id]=c.nome; });
+
+  // FIX: centros usam c.descricao (não c.nome)
+  const ccNome = {};
+  centros.forEach(c => { ccNome[String(c.id)] = c.descricao || c.nome || c.codigo || ('C.C.#' + c.id); });
+  function ccLabel(id) { return ccNome[String(id)] || (id ? 'Sem centro (#' + id + ')' : 'Sem centro'); }
 
   function getMes(x) {
-    let d = campo==='comp' ? x.comp : (campo==='emissao' ? x.emissao : x.vencimento);
+    let d = campo === 'comp' ? x.comp : (campo === 'emissao' ? x.emissao : x.vencimento);
     if (!d) return null;
-    if (campo==='comp') { const p=d.split('/'); return p.length===2&&p[1]===ano ? p[0] : null; }
-    const p=d.split('/'); return p.length===3&&p[2]===ano ? p[1] : null;
+    if (campo === 'comp') { const p = d.split('/'); return p.length === 2 && p[1] === ano ? p[0] : null; }
+    const p = d.split('/'); return p.length === 3 && p[2] === ano ? p[1] : null;
   }
+
+  // Acumula por centro: accRec[centroId][mes] e accPag[centroId][mes]
+  const accRec = {}, accPag = {};
+  function addTo(acc, id, mes, v) {
+    const k = String(id === undefined || id === null || id === '' ? '__sem__' : id);
+    if (!acc[k]) acc[k] = {};
+    acc[k][mes] = (acc[k][mes] || 0) + (v || 0);
+  }
+  receber.forEach(x => { const m = getMes(x); if (m) addTo(accRec, x.centro, m, x.valor); });
+  pagar.forEach(x =>   { const m = getMes(x); if (m) addTo(accPag, x.centro, m, x.valor); });
 
   const MESES_PT = ['Jan','Fev','Mar','Abr','Mai','Jun','Jul','Ago','Set','Out','Nov','Dez'];
-  const acc = {};
-  function add(cat,mes,v){ if(!acc[cat])acc[cat]={}; acc[cat][mes]=(acc[cat][mes]||0)+v; }
-
-  receber.forEach(x=>{ const m=getMes(x); if(m) add(dreCateg(ccNome[x.centro],false),m,x.valor||0); });
-  pagar.forEach(x=>{   const m=getMes(x); if(m) add(dreCateg(ccNome[x.centro],true), m,x.valor||0); });
-
-  const todosMs = ['01','02','03','04','05','06','07','08','09','10','11','12'];
-  const mesesAtivos = todosMs.filter(m=>Object.values(acc).some(o=>(o[m]||0)!==0));
+  const todosMs  = ['01','02','03','04','05','06','07','08','09','10','11','12'];
+  const allVals  = [...Object.values(accRec), ...Object.values(accPag)];
+  const mesesAtivos = todosMs.filter(m => allVals.some(o => (o[m] || 0) !== 0));
   const cols = mesesAtivos.length ? mesesAtivos : ['01','02','03'];
 
-  function S(cats,m){ return cats.reduce((t,c)=>t+(acc[c]?.[m]||0),0); }
-  function ST(cats){ return cols.reduce((t,m)=>t+S(cats,m),0); }
+  // Classifica centros de pagar por seção DRE
+  const pagIds  = [...new Set(Object.keys(accPag))];
+  const recIds  = [...new Set(Object.keys(accRec))];
+  const impIds  = pagIds.filter(id => dreCateg(ccNome[id], true).startsWith('imp_'));
+  const cmvIds  = pagIds.filter(id => dreCateg(ccNome[id], true).startsWith('cmv_'));
+  const despIds = pagIds.filter(id => !impIds.includes(id) && !cmvIds.includes(id));
 
-  const RCATS = ['rec_fatura','rec_recebimento','rec_juros'];
-  const ICATS = ['imp_simples'];
-  const CCATS = ['cmv_estoque','cmv_despop','cmv_prolabore','cmv_salario'];
-  const DCATS = ['desp_agua','desp_combustivel','desp_contabilidade','desp_energia','desp_gas','desp_internet','desp_iptu','desp_juros','desp_limpeza','desp_marketing','desp_motoboy','desp_tarifa','desp_lixo','desp_telefonia','desp_outros'];
+  function sumIds(acc, ids, m) { return ids.reduce((t, id) => t + (acc[id]?.[m] || 0), 0); }
 
   function calc(m) {
-    const rt  = S(RCATS,m);
-    const dev = S(['devol'],m);
-    const rdv = rt - dev;
-    const imp = S(ICATS,m);
-    const liq = rdv - imp;
-    const cmv = S(CCATS,m);
+    const rt  = sumIds(accRec, recIds, m);
+    const imp = sumIds(accPag, impIds, m);
+    const cmv = sumIds(accPag, cmvIds, m);
+    const d5  = sumIds(accPag, despIds, m);
+    const liq = rt - imp;
     const ro  = liq - cmv;
-    const d5  = S(DCATS,m);
-    return { rt, dev, rdv, imp, liq, cmv, ro, d5, fin: ro - d5 };
+    return { rt, imp, liq, cmv, ro, d5, fin: ro - d5 };
   }
-
-  const tots = { rt:0,dev:0,rdv:0,imp:0,liq:0,cmv:0,ro:0,d5:0,fin:0 };
-  cols.forEach(m=>{ const c=calc(m); Object.keys(tots).forEach(k=>tots[k]+=c[k]); });
+  const tots = { rt:0, imp:0, liq:0, cmv:0, ro:0, d5:0, fin:0 };
+  cols.forEach(m => { const c = calc(m); Object.keys(tots).forEach(k => tots[k] += c[k]); });
 
   function fc(v, isDesp) {
-    if (v===0) return '<span style="color:#ddd;font-size:11px">—</span>';
-    if (isDesp) return `<span style="color:#888">${R(v)}</span>`;
-    return `<span style="${v<0?'color:#c03020':'color:#1a7a4a'}">${v<0?'('+R(-v)+')':R(v)}</span>`;
+    if (v === 0) return '<span style="color:#ddd;font-size:11px">—</span>';
+    if (isDesp) return `<span style="color:#555">${R(v)}</span>`;
+    return `<span style="${v < 0 ? 'color:#c03020' : 'color:#1a7a4a'}">${v < 0 ? '(' + R(-v) + ')' : R(v)}</span>`;
   }
   function ft(v) {
-    if (v===0) return '<span style="color:#aaa">—</span>';
-    return v<0?`<span style="color:#ffa0a0">(${R(-v)})</span>`:`<span>${R(v)}</span>`;
+    if (v === 0) return '<span style="color:#aaa">—</span>';
+    return v < 0 ? `<span style="color:#ffa0a0">(${R(-v)})</span>` : `<span>${R(v)}</span>`;
   }
-
-  function subRow(label,cats,isDesp){
-    const vs = cols.map(m=>S(cats,m));
-    const tot = vs.reduce((a,b)=>a+b,0);
-    const zero = vs.every(v=>v===0);
-    return `<tr class="dre-sub${zero?' zero':''}">
+  function secRow(label) {
+    return `<tr class="dre-section"><td colspan="${cols.length + 2}">${label}</td></tr>`;
+  }
+  function ccRow(acc, id, label, isDesp) {
+    const vs  = cols.map(m => acc[id]?.[m] || 0);
+    const tot = vs.reduce((a, b) => a + b, 0);
+    const zero = vs.every(v => v === 0);
+    return `<tr class="dre-sub${zero ? ' zero' : ''}">
       <td>${label}</td>
-      ${vs.map(v=>`<td>${fc(v,isDesp)}</td>`).join('')}
-      <td><strong>${fc(tot,isDesp)}</strong></td>
+      ${vs.map(v => `<td>${fc(v, isDesp)}</td>`).join('')}
+      <td><strong>${fc(tot, isDesp)}</strong></td>
     </tr>`;
   }
-  function secRow(label){
-    return `<tr class="dre-section"><td colspan="${cols.length+2}">${label}</td></tr>`;
-  }
-  function subTot(label,key){
-    const vs=cols.map(m=>calc(m)[key]);
-    const tot=tots[key];
+  function subTot(label, key) {
+    const vs = cols.map(m => calc(m)[key]);
     return `<tr class="dre-subtotal">
       <td><strong>${label}</strong></td>
-      ${vs.map(v=>`<td>${ft(v)}</td>`).join('')}
-      <td><strong>${ft(tot)}</strong></td>
+      ${vs.map(v => `<td>${ft(v)}</td>`).join('')}
+      <td><strong>${ft(tots[key])}</strong></td>
     </tr>`;
   }
-  function totRow(label,key){
-    const vs=cols.map(m=>calc(m)[key]);
-    const tot=tots[key];
-    return `<tr class="dre-total ${tot>=0?'pos':'neg'}">
+  function totRow(label, key) {
+    const vs = cols.map(m => calc(m)[key]);
+    return `<tr class="dre-total ${tots[key] >= 0 ? 'pos' : 'neg'}">
       <td>${label}</td>
-      ${vs.map(v=>`<td>${ft(v)}</td>`).join('')}
-      <td>${ft(tot)}</td>
+      ${vs.map(v => `<td>${ft(v)}</td>`).join('')}
+      <td>${ft(tots[key])}</td>
     </tr>`;
+  }
+  function emptyRow(msg) {
+    return `<tr class="dre-sub zero"><td colspan="${cols.length + 2}" style="color:#bbb;font-size:11px;padding-left:30px!important">${msg}</td></tr>`;
   }
 
-  const colHdr = cols.map(m=>`<th>${MESES_PT[parseInt(m)-1]}</th>`).join('')+'<th>TOTAL</th>';
+  const colHdr = cols.map(m => `<th>${MESES_PT[parseInt(m) - 1]}</th>`).join('') + '<th>TOTAL</th>';
+
+  let tblRows = '';
+  // 1. RECEITA
+  tblRows += secRow('1. Receita Bruta');
+  if (recIds.length) recIds.forEach((id, i) => { tblRows += ccRow(accRec, id, `1.${i+1} ${ccLabel(id)}`, false); });
+  else tblRows += emptyRow('Sem lançamentos de receita no período');
+  tblRows += subTot('(+) Receita Total', 'rt');
+  // 2. IMPOSTOS
+  tblRows += secRow('2. Impostos');
+  if (impIds.length) impIds.forEach((id, i) => { tblRows += ccRow(accPag, id, `2.${i+1} ${ccLabel(id)}`, true); });
+  else tblRows += emptyRow('Sem impostos no período');
+  tblRows += totRow('(=) Receita Líquida', 'liq');
+  // 3. CMV
+  tblRows += secRow('3. CMV — Custo das Mercadorias e Serviços');
+  if (cmvIds.length) cmvIds.forEach((id, i) => { tblRows += ccRow(accPag, id, `3.${i+1} ${ccLabel(id)}`, true); });
+  else tblRows += emptyRow('Sem CMV no período');
+  tblRows += totRow('(=) Resultado Operacional', 'ro');
+  // 4. DESPESAS
+  tblRows += secRow('4. Despesas Operacionais');
+  if (despIds.length) despIds.forEach((id, i) => { tblRows += ccRow(accPag, id, `4.${i+1} ${ccLabel(id)}`, true); });
+  else tblRows += emptyRow('Sem despesas no período');
+  tblRows += totRow('(=) RESULTADO FINAL', 'fin');
 
   const tbl = `
   <div class="panel">
@@ -1458,42 +1487,7 @@ function renderDRE() {
       <div class="tbl-wrap">
         <table class="dre-tbl">
           <thead><tr><th>DESCRIÇÃO</th>${colHdr}</tr></thead>
-          <tbody>
-            ${secRow('1. Receita Bruta')}
-            ${subRow('1.1 Fatura / Recebimento',['rec_fatura'],false)}
-            ${subRow('1.2 Recebimento',['rec_recebimento'],false)}
-            ${subRow('1.3 Juros Recebidos',['rec_juros'],false)}
-            ${subTot('(+) Receita Total','rt')}
-            ${secRow('2. Devoluções')}
-            ${subRow('Devoluções',['devol'],true)}
-            ${subTot('(=) Receita – Devoluções','rdv')}
-            ${secRow('3. Impostos')}
-            ${subRow('3.1 Simples Nacional / DAS',['imp_simples'],true)}
-            ${totRow('(=) Receita Líquida','liq')}
-            ${secRow('4. CMV — Custo das Mercadorias e Serviços')}
-            ${subRow('4.1 Estoque / Mercadorias',['cmv_estoque'],true)}
-            ${subRow('4.2 Despesa Operacional Direta',['cmv_despop'],true)}
-            ${subRow('4.3 Pró-labore',['cmv_prolabore'],true)}
-            ${subRow('4.4 Salário / Folha de Pagamento',['cmv_salario'],true)}
-            ${totRow('(=) Resultado Operacional','ro')}
-            ${secRow('5. Despesas Operacionais')}
-            ${subRow('5.1 Água',['desp_agua'],true)}
-            ${subRow('5.2 Combustível',['desp_combustivel'],true)}
-            ${subRow('5.3 Contabilidade',['desp_contabilidade'],true)}
-            ${subRow('5.4 Energia Elétrica',['desp_energia'],true)}
-            ${subRow('5.5 Gás',['desp_gas'],true)}
-            ${subRow('5.6 Internet',['desp_internet'],true)}
-            ${subRow('5.7 IPTU / Aluguel',['desp_iptu'],true)}
-            ${subRow('5.8 Juros / Multas',['desp_juros'],true)}
-            ${subRow('5.9 Limpeza',['desp_limpeza'],true)}
-            ${subRow('5.10 Marketing',['desp_marketing'],true)}
-            ${subRow('5.11 Motoboy / Delivery',['desp_motoboy'],true)}
-            ${subRow('Tarifa Bancária',['desp_tarifa'],true)}
-            ${subRow('Taxa de Lixo',['desp_lixo'],true)}
-            ${subRow('Telefonia',['desp_telefonia'],true)}
-            ${subRow('Outros',['desp_outros'],true)}
-            ${totRow('(=) RESULTADO FINAL','fin')}
-          </tbody>
+          <tbody>${tblRows}</tbody>
         </table>
       </div>
     </div>
