@@ -116,6 +116,7 @@ tbody tr:hover td{background:#fafafe}
 .ss-opt.selected{background:#fff0e8;color:#e05c1a;font-weight:600}
 .ss-opt.empty{color:#bbb;cursor:default;font-style:italic}
 .ss-opt.empty:hover{background:transparent;color:#bbb}
+.ss-grp{padding:4px 14px 2px;font-size:9px;font-weight:800;color:#c0c0d8;letter-spacing:1.5px;text-transform:uppercase;background:#f8f8fc;pointer-events:none;border-bottom:1px solid #f0f0f8}
 ::-webkit-scrollbar{width:4px;height:4px}
 ::-webkit-scrollbar-track{background:transparent}
 ::-webkit-scrollbar-thumb{background:#ddd;border-radius:4px}
@@ -550,13 +551,10 @@ tbody tr:hover td{background:#fafafe}
           <div class="ss-wrap" id="ss-forn-wrap">
             <input type="hidden" id="lanc-fornecedor-id">
             <div class="ss-input-box">
-              <input type="text" class="ss-input" id="ss-forn-input" placeholder="Digite o nome para buscar..." autocomplete="off" oninput="ssFilter('ss-forn-wrap')" onclick="ssOpen('ss-forn-wrap')" readonly>
+              <input type="text" class="ss-input" id="ss-forn-input" placeholder="🔍 Digite para buscar fornecedor..." autocomplete="off" oninput="ssFilter('ss-forn-wrap')" onfocus="ssOpen('ss-forn-wrap')" onclick="ssOpen('ss-forn-wrap')">
               <span class="ss-arrow">▼</span>
             </div>
             <div class="ss-dropdown" id="ss-forn-drop">
-              <div class="ss-search-box">
-                <input type="text" class="ss-search" id="ss-forn-search" placeholder="🔍 Buscar fornecedor..." oninput="ssSearch(this,'ss-forn-wrap','ss-forn-drop')" autocomplete="off">
-              </div>
               <div class="ss-list" id="ss-forn-list"></div>
             </div>
           </div>
@@ -766,60 +764,68 @@ function todayStr(){const n=new Date();return String(n.getDate()).padStart(2,'0'
 function fmtDate(d){return d||'—';}
 
 // ============================================================
-// SEARCHABLE SELECT COMPONENT
+// SEARCHABLE SELECT COMPONENT — com busca alfabética
 // ============================================================
-let _ssOptions = {};   // { wrapId: [{value, label}] }
-let _ssSelected = {};  // { wrapId: value }
+let _ssOptions = {};    // { wrapId: [{value, label}] }
+let _ssCommitted = {};  // { wrapId: {value, label} | null }
 
 function ssInit(wrapId, options, selectedVal) {
-  // options: [{value, label}] already sorted
   _ssOptions[wrapId] = options;
-  const input  = document.getElementById(wrapId.replace('ss-forn-wrap','ss-forn-input'));
-  const hidden = document.getElementById(wrapId.replace('ss-forn-wrap','lanc-fornecedor-id'));
-  const list   = document.getElementById(wrapId.replace('ss-forn-wrap','ss-forn-list'));
-  ssFill(wrapId, '', selectedVal);
+  const input  = document.getElementById('ss-forn-input');
+  const hidden = document.getElementById('lanc-fornecedor-id');
   if (selectedVal) {
     const opt = options.find(o=>String(o.value)===String(selectedVal));
     if (opt && input) { input.value=opt.label; input.classList.add('has-val'); }
     if (hidden) hidden.value = selectedVal||'';
+    _ssCommitted[wrapId] = opt ? {value:selectedVal,label:opt.label} : null;
   } else {
     if (input) { input.value=''; input.classList.remove('has-val'); }
     if (hidden) hidden.value='';
+    _ssCommitted[wrapId] = null;
   }
+  ssFill(wrapId, '', selectedVal);
 }
 
 function ssFill(wrapId, query, selectedVal) {
   const listEl = document.getElementById('ss-forn-list');
   if (!listEl) return;
-  const opts = (_ssOptions[wrapId]||[]).filter(o => !query || o.label.toLowerCase().includes(query.toLowerCase()));
+  const q = (query||'').toLowerCase();
+  const opts = (_ssOptions[wrapId]||[]).filter(o => !q || o.label.toLowerCase().includes(q));
   if (!opts.length) {
     listEl.innerHTML = '<div class="ss-opt empty">Nenhum resultado encontrado</div>';
     return;
   }
   const curVal = selectedVal !== undefined ? selectedVal : document.getElementById('lanc-fornecedor-id')?.value||'';
-  listEl.innerHTML = opts.map(o=>`
-    <div class="ss-opt ${String(o.value)===String(curVal)?'selected':''}" data-value="${o.value}" data-label="${o.label}" onclick="ssSelect('${wrapId}',${o.value},'${o.label.replace(/'/g,"\\'")}')">
-      ${o.label}
-    </div>`).join('');
-}
-
-function ssSearch(searchEl, wrapId, dropId) {
-  ssFill(wrapId, searchEl.value);
+  let html = '', lastLetter = '';
+  opts.forEach(o => {
+    if (!q) {
+      const first = (o.label.trim()[0]||'#').toUpperCase();
+      if (first !== lastLetter) { html += `<div class="ss-grp">${first}</div>`; lastLetter = first; }
+    }
+    const esc = o.label.replace(/'/g,"\\'");
+    html += `<div class="ss-opt ${String(o.value)===String(curVal)?'selected':''}" onclick="ssSelect('${wrapId}',${o.value},'${esc}')">${o.label}</div>`;
+  });
+  listEl.innerHTML = html;
+  const sel = listEl.querySelector('.selected');
+  if (sel) sel.scrollIntoView({block:'nearest'});
 }
 
 function ssOpen(wrapId) {
   const wrap = document.getElementById(wrapId);
-  if (!wrap) return;
-  wrap.classList.toggle('open');
-  if (wrap.classList.contains('open')) {
-    const searchEl = document.getElementById('ss-forn-search');
-    if (searchEl) { searchEl.value=''; searchEl.focus(); }
-    ssFill(wrapId, '');
-  }
+  if (!wrap || wrap.classList.contains('open')) return;
+  wrap.classList.add('open');
+  ssFill(wrapId, '');
 }
 
 function ssFilter(wrapId) {
-  // When main input changes (readonly, so not triggered by user typing — left as hook)
+  const input  = document.getElementById('ss-forn-input');
+  const hidden = document.getElementById('lanc-fornecedor-id');
+  const wrap   = document.getElementById(wrapId);
+  if (!wrap) return;
+  wrap.classList.add('open');
+  const q = input ? input.value : '';
+  if (!q) { if (hidden) hidden.value=''; if (input) input.classList.remove('has-val'); }
+  ssFill(wrapId, q);
 }
 
 function ssSelect(wrapId, value, label) {
@@ -829,14 +835,23 @@ function ssSelect(wrapId, value, label) {
   if (hidden) hidden.value = value;
   if (input)  { input.value = label; input.classList.add('has-val'); }
   if (wrap)   wrap.classList.remove('open');
-  // highlight selected
+  _ssCommitted[wrapId] = {value, label};
   ssFill(wrapId, '', value);
 }
 
-// Close dropdown on outside click
+// Fecha dropdown e restaura valor ao clicar fora
 document.addEventListener('click', e => {
   const wrap = document.getElementById('ss-forn-wrap');
-  if (wrap && !wrap.contains(e.target)) wrap.classList.remove('open');
+  if (wrap && !wrap.contains(e.target)) {
+    wrap.classList.remove('open');
+    const input  = document.getElementById('ss-forn-input');
+    const hidden = document.getElementById('lanc-fornecedor-id');
+    const committed = _ssCommitted['ss-forn-wrap'];
+    if (input) {
+      if (committed) { input.value=committed.label; input.classList.add('has-val'); if(hidden) hidden.value=committed.value; }
+      else { input.value=''; input.classList.remove('has-val'); if(hidden) hidden.value=''; }
+    }
+  }
 });
 
 // ============================================================
