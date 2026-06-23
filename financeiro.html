@@ -311,6 +311,12 @@ tbody tr:hover td{background:#fafafe}
             <select id="filter-pagar-comp" onchange="renderPagar()" style="padding:7px 10px;border:1.5px solid #dde0ee;border-radius:8px;font-size:12px;outline:none">
               <option value="">Todas competências</option>
             </select>
+            <select id="filter-pagar-forn" onchange="renderPagar()" style="padding:7px 10px;border:1.5px solid #dde0ee;border-radius:8px;font-size:12px;outline:none">
+              <option value="">Todos os fornecedores</option>
+            </select>
+            <select id="filter-pagar-cc" onchange="renderPagar()" style="padding:7px 10px;border:1.5px solid #dde0ee;border-radius:8px;font-size:12px;outline:none">
+              <option value="">Todos os centros</option>
+            </select>
           </div>
         </div>
         <div class="panel-body nop tbl-wrap">
@@ -1190,8 +1196,16 @@ function renderPagar(){
   const all=db.get('pagar');
   const filterSt=document.getElementById('filter-pagar-status')?.value||'';
   const filterCp=document.getElementById('filter-pagar-comp')?.value||'';
+  const filterFn=document.getElementById('filter-pagar-forn')?.value||'';
+  const filterCc=document.getElementById('filter-pagar-cc')?.value||'';
   populateCompFilter('pagar','filter-pagar-comp',filterCp);
-  const list=all.filter(x=>(!filterSt||calcStatus(x,'pagar')===filterSt)&&(!filterCp||x.comp===filterCp));
+  // popular fornecedores
+  const selFn=document.getElementById('filter-pagar-forn');
+  if(selFn){const cur=selFn.value;selFn.innerHTML='<option value="">Todos os fornecedores</option>'+fornSorted().filter(f=>f.ativo).map(f=>`<option value="${f.id}">${f.nome}</option>`).join('');selFn.value=cur;}
+  // popular centros de custo
+  const selCc=document.getElementById('filter-pagar-cc');
+  if(selCc){const cur=selCc.value;selCc.innerHTML='<option value="">Todos os centros</option>'+[...db.get('centros')].sort((a,b)=>a.nome.localeCompare(b.nome,'pt-BR')).map(c=>`<option value="${c.id}">${c.nome}</option>`).join('');selCc.value=cur;}
+  const list=all.filter(x=>(!filterSt||calcStatus(x,'pagar')===filterSt)&&(!filterCp||x.comp===filterCp)&&(!filterFn||String(x.fornecedor)===filterFn)&&(!filterCc||String(x.centro)===filterCc));
   document.getElementById('kpi-pagar').innerHTML=kpiLanc(all,'pagar');
   document.getElementById('tbl-pagar').innerHTML=list.length
     ?list.sort((a,b)=>dateKey(a.vencimento)>dateKey(b.vencimento)?1:-1).map(x=>lançRow(x,'pagar','renderPagar')).join('')
