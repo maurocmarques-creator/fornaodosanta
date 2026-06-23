@@ -1848,7 +1848,20 @@ function gerarRelatorio(){
   const receber=db.get('receber').filter(filtra);
   const pagar=db.get('pagar').filter(filtra);
   const movs=[...receber.map(x=>({...x,_tipo:'receber',_data:x.liquidacao||x.vencimento})),...pagar.map(x=>({...x,_tipo:'pagar',_data:x.liquidacao||x.vencimento}))].sort((a,b)=>dateKey(a._data)>dateKey(b._data)?1:-1);
-  let saldo=banco.saldoInicial;
+  // Saldo acumulado até antes do período filtrado (carryforward)
+  const _compKey=s=>s&&s.length===7?s.slice(3)+'/'+s.slice(0,2):'0000/00';
+  const _ckFiltro=_compKey(compStr);
+  const _allRec=db.get('receber').filter(x=>x.banco===bancoId&&x.status==='recebido');
+  const _allPag=db.get('pagar').filter(x=>x.banco===bancoId&&x.status==='pago');
+  const _antesDoFiltro=x=>{
+    const lk=x.liquidacao?dateKey(x.liquidacao):dateKey(x.vencimento);
+    if(compStr)return _compKey(x.comp)<_ckFiltro;
+    return lk<diKey;
+  };
+  const saldoAnterior=banco.saldoInicial
+    +_allRec.filter(_antesDoFiltro).reduce((s,x)=>s+x.valor,0)
+    -_allPag.filter(_antesDoFiltro).reduce((s,x)=>s+x.valor,0);
+  let saldo=saldoAnterior;
   const rows=movs.map(m=>{
     const isRec=m._tipo==='receber';
     const liq=m.status==='recebido'||m.status==='pago';
@@ -1870,14 +1883,14 @@ function gerarRelatorio(){
   });
   const totalRec=receber.filter(x=>x.status==='recebido').reduce((s,x)=>s+x.valor,0);
   const totalPag=pagar.filter(x=>x.status==='pago').reduce((s,x)=>s+x.valor,0);
-  const saldoFinal=banco.saldoInicial+totalRec-totalPag;
+  const saldoFinal=saldoAnterior+totalRec-totalPag;
   const periodo=compStr?`Competência: ${compStr}`:`${diStr||'início'} a ${dfStr||'hoje'}`;
   document.getElementById('relatorio-area').innerHTML=`
     <div class="panel">
       <div class="panel-hd" style="flex-wrap:wrap;gap:10px">
         <div><h2 style="font-size:14px">📊 Conciliação Bancária — ${banco.nome}</h2><div class="muted" style="margin-top:3px">${periodo} · Gerado em ${todayStr()}</div></div>
         <div class="flex gap8" style="flex-wrap:wrap">
-          <div style="font-size:12px;background:#f8f8fc;padding:8px 14px;border-radius:8px;border:1px solid #eee">Saldo inicial: <strong>${R(banco.saldoInicial)}</strong></div>
+          <div style="font-size:12px;background:#f8f8fc;padding:8px 14px;border-radius:8px;border:1px solid #eee">Saldo inicial: <strong>${R(saldoAnterior)}</strong></div>
           <div style="font-size:12px;background:#f8f8fc;padding:8px 14px;border-radius:8px;border:1px solid #eee">Entradas: <strong class="saldo-pos">${R(totalRec)}</strong></div>
           <div style="font-size:12px;background:#f8f8fc;padding:8px 14px;border-radius:8px;border:1px solid #eee">Saídas: <strong class="saldo-neg">${R(totalPag)}</strong></div>
           <div style="font-size:13px;background:#1c1c2e;color:#fff;padding:8px 16px;border-radius:8px;font-weight:700">Saldo: <span class="${saldoFinal>=0?'saldo-pos':'saldo-neg'}">${R(saldoFinal)}</span></div>
@@ -1887,7 +1900,7 @@ function gerarRelatorio(){
         <table class="report-table">
           <thead><tr><th>Dt. Ref.</th><th>Nº Documento</th><th>Fornecedor</th><th>Competência</th><th>Emissão</th><th>Vencimento</th><th>Liquidação</th><th>C. Custo</th><th>Observação</th><th class="text-right">Entradas</th><th class="text-right">Saídas</th><th>Status</th><th class="text-right">Saldo</th></tr></thead>
           <tbody>
-            <tr style="background:#f0f0f8"><td colspan="12" class="fw7" style="font-size:11px;color:#888;text-transform:uppercase">Saldo inicial</td><td class="text-right fw7 ${banco.saldoInicial>=0?'saldo-pos':'saldo-neg'}">${R(banco.saldoInicial)}</td></tr>
+            <tr style="background:#f0f0f8"><td colspan="12" class="fw7" style="font-size:11px;color:#888;text-transform:uppercase">Saldo inicial do período</td><td class="text-right fw7 ${saldoAnterior>=0?'saldo-pos':'saldo-neg'}">${R(saldoAnterior)}</td></tr>
             ${rows.length?rows.join(''):'<tr><td colspan="13" class="tbl-empty">Nenhuma movimentação encontrada.</td></tr>'}
             <tr class="saldo-row"><td colspan="9" class="fw7" style="text-transform:uppercase;letter-spacing:.5px">Saldo final</td><td class="text-right">${R(totalRec)}</td><td class="text-right">${R(totalPag)}</td><td></td><td class="text-right ${saldoFinal>=0?'saldo-pos':'saldo-neg'}">${R(saldoFinal)}</td></tr>
           </tbody>
