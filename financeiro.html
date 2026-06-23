@@ -1204,7 +1204,7 @@ function renderPagar(){
   if(selFn){const cur=selFn.value;selFn.innerHTML='<option value="">Todos os fornecedores</option>'+fornSorted().filter(f=>f.ativo).map(f=>`<option value="${f.id}">${f.nome}</option>`).join('');selFn.value=cur;}
   // popular centros de custo
   const selCc=document.getElementById('filter-pagar-cc');
-  if(selCc){const cur=selCc.value;selCc.innerHTML='<option value="">Todos os centros</option>'+[...db.get('centros')].sort((a,b)=>a.nome.localeCompare(b.nome,'pt-BR')).map(c=>`<option value="${c.id}">${c.nome}</option>`).join('');selCc.value=cur;}
+  if(selCc){const cur=selCc.value;selCc.innerHTML='<option value="">Todos os centros</option>'+(db.get('centros')||[]).sort((a,b)=>(a.descricao||a.codigo||'').localeCompare((b.descricao||b.codigo||''),'pt-BR')).map(c=>`<option value="${c.id}">${c.codigo} — ${c.descricao}</option>`).join('');selCc.value=cur;}
   const list=all.filter(x=>(!filterSt||calcStatus(x,'pagar')===filterSt)&&(!filterCp||x.comp===filterCp)&&(!filterFn||String(x.fornecedor)===filterFn)&&(!filterCc||String(x.centro)===filterCc));
   document.getElementById('kpi-pagar').innerHTML=kpiLanc(all,'pagar');
   document.getElementById('tbl-pagar').innerHTML=list.length
