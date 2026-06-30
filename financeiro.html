@@ -201,6 +201,7 @@ tbody tr:hover td{background:#fafafe}
     <div class="sb-item active" onclick="nav('bancos',this)"><span class="ic">🏦</span> Bancos</div>
     <div class="sb-item" onclick="nav('fornecedores',this)"><span class="ic">🏢</span> Fornecedores</div>
     <div class="sb-item" onclick="nav('centros',this)"><span class="ic">🏷️</span> Centro de Custo</div>
+    <div class="sb-item" onclick="nav('formas',this)"><span class="ic">💳</span> Formas de Pagamento</div>
   </div>
   <div class="sb-group">
     <div class="sb-group-label">Lançamentos</div>
@@ -276,6 +277,16 @@ tbody tr:hover td{background:#fafafe}
       </div>
     </div>
 
+    <div class="screen" id="s-formas">
+      <div class="panel">
+        <div class="panel-hd"><h2>Formas de Pagamento</h2></div>
+        <div class="panel-body nop tbl-wrap">
+          <table><thead><tr><th>Nome</th><th>Ativo</th><th style="width:120px"></th></tr></thead>
+          <tbody id="tbl-formas"></tbody></table>
+        </div>
+      </div>
+    </div>
+
     <!-- CONTAS A RECEBER -->
     <div class="screen" id="s-receber">
       <div class="kpi-row" id="kpi-receber"></div>
@@ -292,7 +303,7 @@ tbody tr:hover td{background:#fafafe}
           </div>
         </div>
         <div class="panel-body nop tbl-wrap">
-          <table><thead><tr><th>Nº Doc</th><th>Fornecedor / Cliente</th><th>Competência</th><th>Emissão</th><th>Vencimento</th><th>Liquidação</th><th>Banco</th><th>C. Custo</th><th class="text-right">Valor</th><th>Status</th><th style="width:130px"></th></tr></thead>
+          <table><thead><tr><th>Nº Doc</th><th>Fornecedor / Cliente</th><th>Competência</th><th>Emissão</th><th>Vencimento</th><th>Liquidação</th><th>Forma Pgto</th><th>Banco</th><th>C. Custo</th><th class="text-right">Valor</th><th>Status</th><th style="width:130px"></th></tr></thead>
           <tbody id="tbl-receber"></tbody></table>
         </div>
       </div>
@@ -320,7 +331,7 @@ tbody tr:hover td{background:#fafafe}
           </div>
         </div>
         <div class="panel-body nop tbl-wrap">
-          <table><thead><tr><th>Nº Doc</th><th>Fornecedor</th><th>Competência</th><th>Emissão</th><th>Vencimento</th><th>Liquidação</th><th>Banco</th><th>C. Custo</th><th class="text-right">Valor</th><th>Status</th><th style="width:130px"></th></tr></thead>
+          <table><thead><tr><th>Nº Doc</th><th>Fornecedor</th><th>Competência</th><th>Emissão</th><th>Vencimento</th><th>Liquidação</th><th>Forma Pgto</th><th>Banco</th><th>C. Custo</th><th class="text-right">Valor</th><th>Status</th><th style="width:130px"></th></tr></thead>
           <tbody id="tbl-pagar"></tbody></table>
         </div>
       </div>
@@ -558,6 +569,22 @@ tbody tr:hover td{background:#fafafe}
   </div>
 </div>
 
+<!-- FORMA DE PAGAMENTO -->
+<div class="modal-overlay" id="modal-forma">
+  <div class="modal" style="width:380px">
+    <div class="modal-hd"><h3 id="modal-forma-title">💳 Nova Forma de Pagamento</h3><button class="modal-close" onclick="closeModal('modal-forma')">✕</button></div>
+    <div class="modal-body">
+      <input type="hidden" id="forma-edit-id">
+      <div class="form-row"><div class="fg"><label class="field-req">Nome</label><input id="forma-nome" placeholder="Ex: Cartão de Débito"></div></div>
+      <div class="form-row"><div class="fg"><label>Ativo</label><select id="forma-ativo"><option value="1">Sim</option><option value="0">Não</option></select></div></div>
+    </div>
+    <div class="modal-ft">
+      <button class="btn btn-ghost" onclick="closeModal('modal-forma')">Cancelar</button>
+      <button class="btn btn-primary" onclick="salvarForma()">💾 Salvar</button>
+    </div>
+  </div>
+</div>
+
 <!-- CENTRO DE CUSTO -->
 <div class="modal-overlay" id="modal-centro">
   <div class="modal" style="width:440px">
@@ -724,9 +751,15 @@ tbody tr:hover td{background:#fafafe}
           <select id="liq-banco" style="padding:9px 12px;border:1.5px solid #dde0ee;border-radius:8px;font-size:13px;outline:none"><option value="">— Selecione —</option></select>
         </div>
       </div>
-      <div class="fg">
-        <label>Observação (opcional)</label>
-        <input id="liq-obs" placeholder="Ex: Pago via Pix, ref. NF 4421">
+      <div class="form-row cols2">
+        <div class="fg">
+          <label>Forma de pagamento</label>
+          <select id="liq-forma" style="padding:9px 12px;border:1.5px solid #dde0ee;border-radius:8px;font-size:13px;outline:none"><option value="">— Selecione —</option></select>
+        </div>
+        <div class="fg">
+          <label>Observação (opcional)</label>
+          <input id="liq-obs" placeholder="Ex: ref. NF 4421">
+        </div>
       </div>
     </div>
     <div class="modal-ft">
@@ -752,8 +785,8 @@ try { const c = localStorage.getItem('__fb_cfg'); if(c) FIREBASE_CONFIG = JSON.p
 // ============================================================
 // STORAGE — cache em memória + Firebase ou localStorage
 // ============================================================
-const K = { bancos:'fin_bancos', fornecedores:'fin_forn', centros:'fin_cc', receber:'fin_receber', pagar:'fin_pagar' };
-let _cache = { bancos:[], fornecedores:[], centros:[], receber:[], pagar:[] };
+const K = { bancos:'fin_bancos', fornecedores:'fin_forn', centros:'fin_cc', receber:'fin_receber', pagar:'fin_pagar', formas:'fin_formas' };
+let _cache = { bancos:[], fornecedores:[], centros:[], receber:[], pagar:[], formas:[] };
 let _fsdb = null; // Firestore instance
 let _fbReady = false;
 
@@ -846,6 +879,14 @@ function seed() {
     {id:1,doc:'000000000000010',comp:'06/2026',valor:78,emissao:'07/06/2026',vencimento:'10/06/2026',liquidacao:'',fornecedor:2,banco:1,centro:3,obs:'Pedido fiado — WhatsApp',status:'pendente'},
     {id:2,doc:'000000000000011',comp:'06/2026',valor:202,emissao:'07/06/2026',vencimento:'12/06/2026',liquidacao:'',fornecedor:2,banco:1,centro:3,obs:'Crédito cartão — lote',status:'pendente'},
     {id:3,doc:'000000000000012',comp:'05/2026',valor:4312,emissao:'31/05/2026',vencimento:'31/05/2026',liquidacao:'31/05/2026',fornecedor:2,banco:1,centro:3,obs:'Receitas de vendas maio',status:'recebido'}
+  ]);
+  if (!db.get('formas').length) db.set('formas',[
+    {id:1,nome:'Dinheiro',ativo:1},
+    {id:2,nome:'PIX',ativo:1},
+    {id:3,nome:'Cartão de Débito',ativo:1},
+    {id:4,nome:'Cartão de Crédito',ativo:1},
+    {id:5,nome:'Transferência Bancária',ativo:1},
+    {id:6,nome:'Boleto',ativo:1}
   ]);
   localStorage.setItem('__seeded','1');
 }
@@ -1002,6 +1043,7 @@ const TITLES = {
   bancos:       ['Bancos',                   'Cadastros › Bancos',              '+ Novo Banco',      'modal-banco'],
   fornecedores: ['Fornecedores',             'Cadastros › Fornecedores',        '+ Novo Fornecedor', 'modal-fornecedor'],
   centros:      ['Centro de Custo',          'Cadastros › Centro de Custo',     '+ Novo Centro',     'modal-centro'],
+  formas:       ['Formas de Pagamento',      'Cadastros › Formas de Pagamento', '+ Nova Forma',      'modal-forma'],
   receber:      ['Contas a Receber',         'Lançamentos › A Receber',         '+ Novo lançamento', '__receber'],
   pagar:        ['Contas a Pagar',           'Lançamentos › A Pagar',           '+ Novo lançamento', '__pagar'],
   fluxo:        ['Fluxo de Caixa Projetado', 'Relatórios › Fluxo Projetado',    '', ''],
@@ -1034,7 +1076,7 @@ function topbarAction() {
 }
 
 function renderScreen(id) {
-  const map = {bancos:renderBancos,fornecedores:renderFornecedores,centros:renderCentros,receber:renderReceber,pagar:renderPagar,fluxo:initFluxo,conciliacao:initConciliacao,centrocusto:initCentroCusto,dre:initDRE};
+  const map = {bancos:renderBancos,fornecedores:renderFornecedores,centros:renderCentros,formas:renderFormas,receber:renderReceber,pagar:renderPagar,fluxo:initFluxo,conciliacao:initConciliacao,centrocusto:initCentroCusto,dre:initDRE};
   if (map[id]) map[id]();
 }
 
@@ -1158,6 +1200,49 @@ function salvarFornecedor(){
 }
 
 // ============================================================
+// FORMAS DE PAGAMENTO
+// ============================================================
+function nomeForma(id){
+  if(!id)return '—';
+  const f=db.get('formas').find(x=>x.id===parseInt(id));
+  return f?f.nome:'—';
+}
+function renderFormas(){
+  const list=db.get('formas');
+  document.getElementById('tbl-formas').innerHTML=list.length?list.map(f=>`
+    <tr>
+      <td class="fw7">${f.nome}</td>
+      <td>${f.ativo?'<span class="badge b-green">Ativo</span>':'<span class="badge b-gray">Inativo</span>'}</td>
+      <td class="nowrap">
+        <button class="btn btn-ghost btn-sm" onclick="editForma(${f.id})">✏️ Editar</button>
+        <button class="btn btn-danger btn-sm" onclick="excluir('formas',${f.id},renderFormas)">🗑</button>
+      </td>
+    </tr>`).join(''):'<tr><td colspan="3" class="tbl-empty">Nenhuma forma cadastrada.</td></tr>';
+}
+function editForma(id){
+  const f=db.get('formas').find(x=>x.id===id);if(!f)return;
+  document.getElementById('forma-edit-id').value=id;
+  document.getElementById('forma-nome').value=f.nome;
+  document.getElementById('forma-ativo').value=f.ativo;
+  document.getElementById('modal-forma-title').textContent='💳 Editar Forma de Pagamento';
+  openModal('modal-forma');
+}
+function salvarForma(){
+  const nome=document.getElementById('forma-nome').value.trim();
+  if(!nome){alert('Informe o nome da forma de pagamento.');return;}
+  const list=db.get('formas');
+  const editId=parseInt(document.getElementById('forma-edit-id').value)||0;
+  const obj={nome,ativo:parseInt(document.getElementById('forma-ativo').value)};
+  if(editId){Object.assign(list.find(x=>x.id===editId)||{},{...obj,id:editId});}
+  else{list.push({...obj,id:db.nextId(list)});}
+  db.set('formas',list);
+  closeModal('modal-forma');
+  document.getElementById('forma-edit-id').value='';
+  document.getElementById('modal-forma-title').textContent='💳 Nova Forma de Pagamento';
+  renderFormas();
+}
+
+// ============================================================
 // CENTROS DE CUSTO
 // ============================================================
 function renderCentros(){
@@ -1239,6 +1324,7 @@ function lançRow(x,tipo,renderFnName){
     <td class="nowrap">${x.emissao}</td>
     <td class="nowrap" style="${st==='vencido'?'color:#c03020;font-weight:600':''}">${x.vencimento}</td>
     <td class="nowrap">${x.liquidacao||'—'}</td>
+    <td style="font-size:11px">${x.formaPagamento?nomeForma(x.formaPagamento):'—'}</td>
     <td class="nowrap" title="${nomeBanco(x.banco)}">${nomeBancoShort(x.banco)}</td>
     <td class="nowrap" title="${nomeCentroFull(x.centro)}">${nomeCentro(x.centro)}</td>
     <td class="text-right fw7">${R(x.valor)}</td>
@@ -1267,7 +1353,7 @@ function renderReceber(){
   document.getElementById('kpi-receber').innerHTML=kpiLanc(all,'receber');
   document.getElementById('tbl-receber').innerHTML=list.length
     ?list.sort((a,b)=>dateKey(a.vencimento)>dateKey(b.vencimento)?1:-1).map(x=>lançRow(x,'receber','renderReceber')).join('')
-    :'<tr><td colspan="11" class="tbl-empty">Nenhum lançamento encontrado.</td></tr>';
+    :'<tr><td colspan="12" class="tbl-empty">Nenhum lançamento encontrado.</td></tr>';
   const pend=all.filter(x=>['pendente','vencido'].includes(calcStatus(x,'receber'))).length;
   const badge=document.getElementById('badge-receber');
   badge.textContent=pend;badge.style.display=pend?'':'none';
@@ -1290,7 +1376,7 @@ function renderPagar(){
   document.getElementById('kpi-pagar').innerHTML=kpiLanc(all,'pagar');
   document.getElementById('tbl-pagar').innerHTML=list.length
     ?list.sort((a,b)=>dateKey(a.vencimento)>dateKey(b.vencimento)?1:-1).map(x=>lançRow(x,'pagar','renderPagar')).join('')
-    :'<tr><td colspan="11" class="tbl-empty">Nenhum lançamento encontrado.</td></tr>';
+    :'<tr><td colspan="12" class="tbl-empty">Nenhum lançamento encontrado.</td></tr>';
   const pend=all.filter(x=>['pendente','vencido'].includes(calcStatus(x,'pagar'))).length;
   const badge=document.getElementById('badge-pagar');
   badge.textContent=pend;badge.style.display=pend?'':'none';
@@ -1470,6 +1556,9 @@ function abrirLiquidar(id,tipo){
   const sel=document.getElementById('liq-banco');
   sel.innerHTML='<option value="">— Selecione —</option>'+db.get('bancos').filter(b=>b.ativo).map(b=>`<option value="${b.id}">${b.nome}</option>`).join('');
   if(item.banco)sel.value=item.banco;
+  const selForma=document.getElementById('liq-forma');
+  selForma.innerHTML='<option value="">— Selecione —</option>'+db.get('formas').filter(f=>f.ativo).map(f=>`<option value="${f.id}">${f.nome}</option>`).join('');
+  if(item.formaPagamento)selForma.value=item.formaPagamento;
   openModal('modal-liquidar');
 }
 function confirmarLiquidacao(){
@@ -1478,12 +1567,14 @@ function confirmarLiquidacao(){
   const data=document.getElementById('liq-data').value.trim();
   const banco=document.getElementById('liq-banco').value;
   const obs=document.getElementById('liq-obs').value.trim();
+  const formaId=document.getElementById('liq-forma').value;
   if(!data||data.length<10){alert('Informe a data de liquidação.');return;}
   const list=db.get(tipo);
   const item=list.find(x=>x.id===id);if(!item)return;
   item.liquidacao=data;
   item.status=tipo==='pagar'?'pago':'recebido';
   if(banco)item.banco=parseInt(banco);
+  if(formaId)item.formaPagamento=parseInt(formaId);
   if(obs)item.obs=(item.obs?item.obs+' | ':'')+obs;
   db.set(tipo,list);
   closeModal('modal-liquidar');
@@ -2007,14 +2098,16 @@ function gerarRelatorio(){
   const pagar=db.get('pagar').filter(filtra);
   const movs=[...receber.map(x=>({...x,_tipo:'receber',_data:x.liquidacao||x.vencimento})),...pagar.map(x=>({...x,_tipo:'pagar',_data:x.liquidacao||x.vencimento}))].sort((a,b)=>dateKey(a._data)>dateKey(b._data)?1:-1);
   // Saldo acumulado até antes do período filtrado (carryforward)
+  // dataSaldo é a âncora do saldoInicial: só contamos transações APÓS essa data
   const _compKey=s=>s&&s.length===7?s.slice(3)+'/'+s.slice(0,2):'0000/00';
   const _ckFiltro=_compKey(compStr);
+  const _dataSaldoKey=banco.dataSaldo?banco.dataSaldo.replace(/-/g,''):'00000000';
   const _allRec=db.get('receber').filter(x=>x.banco===bancoId&&x.status==='recebido');
   const _allPag=db.get('pagar').filter(x=>x.banco===bancoId&&x.status==='pago');
   const _antesDoFiltro=x=>{
     const lk=x.liquidacao?dateKey(x.liquidacao):dateKey(x.vencimento);
-    if(compStr)return _compKey(x.comp)<_ckFiltro;
-    return lk<diKey;
+    if(compStr)return _compKey(x.comp)<_ckFiltro&&lk>_dataSaldoKey;
+    return lk>_dataSaldoKey&&lk<diKey;
   };
   const saldoAnterior=banco.saldoInicial
     +_allRec.filter(_antesDoFiltro).reduce((s,x)=>s+x.valor,0)
