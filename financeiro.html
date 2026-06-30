@@ -143,6 +143,10 @@ tbody tr:hover td{background:#fafafe}
 
 /* FLUXO TABLE */
 .fluxo-table thead th{background:#1c1c2e;color:#a0a0d0;font-size:10px}
+.cc-tabs{display:flex;gap:4px;padding:12px 16px 0;border-bottom:2px solid #eeeef8;background:#fff}
+.cc-tab{padding:8px 20px;border:none;border-radius:8px 8px 0 0;background:#f0f0f8;color:#888;font-size:13px;font-weight:600;cursor:pointer;transition:.15s}
+.cc-tab.active{background:#1c1c2e;color:#fff}
+.cc-tab:hover:not(.active){background:#e0e0f0;color:#444}
 .fluxo-row-entrada td{background:#f0fdf6}
 .fluxo-row-saida td{background:#fdf5f0}
 .fluxo-row-saldo td{background:#f8f8fc;font-weight:700;font-size:12px}
@@ -270,9 +274,17 @@ tbody tr:hover td{background:#fafafe}
     <div class="screen" id="s-centros">
       <div class="panel">
         <div class="panel-hd"><h2>Centros de custo</h2></div>
-        <div class="panel-body nop tbl-wrap">
-          <table><thead><tr><th>Código</th><th>Descrição</th><th>Tipo</th><th>Ativo</th><th style="width:120px"></th></tr></thead>
-          <tbody id="tbl-centros"></tbody></table>
+        <div class="cc-tabs">
+          <button class="cc-tab active" id="cc-tab-btn-ativo" onclick="setCCTab('ativo',this)">✅ Ativos <span id="cc-count-ativo" style="font-size:11px;opacity:.7"></span></button>
+          <button class="cc-tab" id="cc-tab-btn-inativo" onclick="setCCTab('inativo',this)">⛔ Inativos <span id="cc-count-inativo" style="font-size:11px;opacity:.7"></span></button>
+        </div>
+        <div id="cc-pane-ativo" class="panel-body nop tbl-wrap">
+          <table><thead><tr><th>Código</th><th>Descrição</th><th>Tipo</th><th style="width:120px"></th></tr></thead>
+          <tbody id="tbl-centros-ativo"></tbody></table>
+        </div>
+        <div id="cc-pane-inativo" class="panel-body nop tbl-wrap" style="display:none">
+          <table><thead><tr><th>Código</th><th>Descrição</th><th>Tipo</th><th style="width:120px"></th></tr></thead>
+          <tbody id="tbl-centros-inativo"></tbody></table>
         </div>
       </div>
     </div>
@@ -1249,18 +1261,30 @@ function salvarForma(){
 // ============================================================
 // CENTROS DE CUSTO
 // ============================================================
+function _ccRow(c){
+  return `<tr>
+    <td class="fw7">${c.codigo}</td><td>${c.descricao}</td>
+    <td><span class="badge ${c.tipo==='Receita'?'b-green':c.tipo==='Ambos'?'b-blue':'b-red'}">${c.tipo}</span></td>
+    <td class="nowrap">
+      <button class="btn btn-ghost btn-sm" onclick="editCentro(${c.id})">✏️ Editar</button>
+      <button class="btn btn-danger btn-sm" onclick="excluir('centros',${c.id},renderCentros)">🗑</button>
+    </td>
+  </tr>`;
+}
 function renderCentros(){
   const list=db.get('centros');
-  document.getElementById('tbl-centros').innerHTML=list.length?list.map(c=>`
-    <tr>
-      <td class="fw7">${c.codigo}</td><td>${c.descricao}</td>
-      <td><span class="badge ${c.tipo==='Receita'?'b-green':c.tipo==='Ambos'?'b-blue':'b-red'}">${c.tipo}</span></td>
-      <td>${c.ativo?'<span class="badge b-green">Ativo</span>':'<span class="badge b-gray">Inativo</span>'}</td>
-      <td class="nowrap">
-        <button class="btn btn-ghost btn-sm" onclick="editCentro(${c.id})">✏️ Editar</button>
-        <button class="btn btn-danger btn-sm" onclick="excluir('centros',${c.id},renderCentros)">🗑</button>
-      </td>
-    </tr>`).join(''):'<tr><td colspan="5" class="tbl-empty">Nenhum centro de custo cadastrado.</td></tr>';
+  const ativos=list.filter(c=>c.ativo);
+  const inativos=list.filter(c=>!c.ativo);
+  document.getElementById('tbl-centros-ativo').innerHTML=ativos.length?ativos.map(_ccRow).join(''):'<tr><td colspan="4" class="tbl-empty">Nenhum centro ativo.</td></tr>';
+  document.getElementById('tbl-centros-inativo').innerHTML=inativos.length?inativos.map(_ccRow).join(''):'<tr><td colspan="4" class="tbl-empty">Nenhum centro inativo.</td></tr>';
+  document.getElementById('cc-count-ativo').textContent='('+ativos.length+')';
+  document.getElementById('cc-count-inativo').textContent='('+inativos.length+')';
+}
+function setCCTab(tab, el){
+  ['ativo','inativo'].forEach(t=>{
+    document.getElementById('cc-pane-'+t).style.display=t===tab?'':'none';
+    document.getElementById('cc-tab-btn-'+t).classList.toggle('active',t===tab);
+  });
 }
 function editCentro(id){
   const c=db.get('centros').find(x=>x.id===id);if(!c)return;
