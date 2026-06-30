@@ -641,12 +641,43 @@ tbody tr:hover td{background:#fafafe}
           <span class="char-count" id="obs-count">0/200</span>
         </div>
       </div>
+
+      <!-- EXTRAS: apenas Contas a Pagar -->
+      <div id="pagar-extras" style="display:none">
+        <div class="form-divider">Boleto / Parcela</div>
+        <div class="form-row cols2">
+          <div class="fg">
+            <label>Parcela</label>
+            <input id="lanc-parcela" placeholder="Ex: 1/3" maxlength="10">
+            <span class="hint">Formato livre: 1/3, 2/12...</span>
+          </div>
+          <div class="fg">
+            <label>Código de barras</label>
+            <input id="lanc-codbarras" placeholder="Cole o código do boleto aqui" maxlength="100" style="font-family:monospace;font-size:11px" oninput="this.value=this.value.replace(/[^0-9 .]/g,'')">
+          </div>
+        </div>
+        <div class="form-row">
+          <div class="fg">
+            <label>Anexar imagem (boleto / nota fiscal)</label>
+            <input type="file" id="lanc-imagem" accept="image/*" onchange="onLancImagemChange(this)" style="padding:6px;border:1.5px solid #dde0ee;border-radius:8px;font-size:12px;width:100%;cursor:pointer;box-sizing:border-box">
+            <div id="lanc-imagem-preview" style="margin-top:8px;display:none;align-items:center;gap:10px">
+              <img id="lanc-imagem-thumb" style="max-height:100px;max-width:220px;border-radius:6px;border:1px solid #dde0ee;cursor:zoom-in" onclick="lancImagemAmplia()" title="Clique para ampliar">
+              <button type="button" onclick="clearLancImagem()" style="background:none;border:1px solid #e05c1a;border-radius:6px;color:#e05c1a;cursor:pointer;font-size:12px;padding:4px 10px">✕ Remover</button>
+            </div>
+          </div>
+        </div>
+      </div>
     </div>
     <div class="modal-ft">
       <button class="btn btn-ghost" onclick="closeModal('modal-lancamento')">Cancelar</button>
       <button class="btn btn-primary" onclick="salvarLancamento()">💾 Salvar lançamento</button>
     </div>
   </div>
+</div>
+
+<!-- Visualizador fullscreen de imagem -->
+<div id="img-fullview" onclick="this.style.display='none'" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.85);z-index:10000;align-items:center;justify-content:center;cursor:zoom-out">
+  <img id="img-fullview-src" style="max-width:92vw;max-height:92vh;border-radius:8px;box-shadow:0 4px 32px rgba(0,0,0,.5)">
 </div>
 
 <!-- LIQUIDAR -->
@@ -1223,6 +1254,11 @@ function openLancamento(tipo, editData){
   document.getElementById('modal-lanc-title').textContent=tipo==='receber'?'📥 Lançamento — Contas a Receber':'📤 Lançamento — Contas a Pagar';
   document.getElementById('lanc-edit-id').value='';
   updateSelects();
+  // Mostrar/ocultar campos extras (apenas Contas a Pagar)
+  const _isPagar=tipo==='pagar';
+  document.getElementById('pagar-extras').style.display=_isPagar?'':'none';
+  _lancImageData=null;
+  clearLancImagem();
 
   if(!editData){
     document.getElementById('lanc-doc').value='';
@@ -1235,6 +1271,7 @@ function openLancamento(tipo, editData){
     document.getElementById('obs-count').textContent='0/200';
     document.getElementById('lanc-banco').value='';
     document.getElementById('lanc-centro').value='';
+    if(_isPagar){document.getElementById('lanc-parcela').value='';document.getElementById('lanc-codbarras').value='';}
     ssInit('ss-forn-wrap', fornSorted().filter(f=>f.ativo).map(f=>({value:f.id,label:f.nome})), null);
   }
   if(editData){
@@ -1247,6 +1284,13 @@ function openLancamento(tipo, editData){
     document.getElementById('lanc-liquidacao').value=editData.liquidacao||'';
     document.getElementById('lanc-obs').value=editData.obs||'';
     document.getElementById('obs-count').textContent=(editData.obs||'').length+'/200';
+    if(_isPagar){
+      document.getElementById('lanc-parcela').value=editData.parcela||'';
+      document.getElementById('lanc-codbarras').value=editData.codbarras||'';
+      // Restaurar imagem do localStorage
+      const _img=localStorage.getItem('img_pagar_'+editData.id);
+      if(_img){_lancImageData=_img;_showLancImagePreview(_img);}
+    }
     setTimeout(()=>{
       document.getElementById('lanc-banco').value=editData.banco||'';
       document.getElementById('lanc-centro').value=editData.centro||'';
@@ -1273,6 +1317,8 @@ function salvarLancamento(){
   const banco=document.getElementById('lanc-banco').value;
   const cc=document.getElementById('lanc-centro').value;
   const obs=document.getElementById('lanc-obs').value.trim();
+  const parcela=tipo==='pagar'?(document.getElementById('lanc-parcela')?.value.trim()||''):'';
+  const codbarras=tipo==='pagar'?(document.getElementById('lanc-codbarras')?.value.trim()||''):'';
 
   const errs=[];
   if(!doc)errs.push('Número do documento');
@@ -1290,12 +1336,72 @@ function salvarLancamento(){
   const prevStatus=list.find(x=>x.id===editId)?.status||'pendente';
   const status=liq?(tipo==='pagar'?'pago':'recebido'):(['pago','recebido'].includes(prevStatus)?prevStatus:'pendente');
   const obj={doc,comp,valor,emissao:emis,vencimento:venc,liquidacao:liq,fornecedor:parseInt(fornId),banco:parseInt(banco),centro:parseInt(cc),obs,status};
+  if(tipo==='pagar'){if(parcela)obj.parcela=parcela;if(codbarras)obj.codbarras=codbarras;if(_lancImageData)obj.temImagem=1;}
 
-  if(editId){const idx=list.findIndex(x=>x.id===editId);if(idx>=0)list[idx]={...obj,id:editId};}
-  else{list.push({...obj,id:db.nextId(list)});}
+  if(editId){
+    const idx=list.findIndex(x=>x.id===editId);
+    if(idx>=0)list[idx]={...obj,id:editId};
+    if(tipo==='pagar'&&_lancImageData)localStorage.setItem('img_pagar_'+editId,_lancImageData);
+    else if(tipo==='pagar'&&!obj.temImagem)localStorage.removeItem('img_pagar_'+editId);
+  } else {
+    const _nid=db.nextId(list);
+    list.push({...obj,id:_nid});
+    if(tipo==='pagar'&&_lancImageData)localStorage.setItem('img_pagar_'+_nid,_lancImageData);
+  }
   db.set(tipo,list);
   closeModal('modal-lancamento');
   if(tipo==='receber')renderReceber();else renderPagar();
+}
+
+// ============================================================
+// CAMPOS EXTRAS PAGAR — imagem / código de barras / parcela
+// ============================================================
+let _lancImageData = null;
+
+function onLancImagemChange(input) {
+  const file = input.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = function(ev) {
+    const img = new Image();
+    img.onload = function() {
+      const MAX = 1400;
+      let w = img.width, h = img.height;
+      if (w > MAX) { h = Math.round(h * MAX / w); w = MAX; }
+      const canvas = document.createElement('canvas');
+      canvas.width = w; canvas.height = h;
+      canvas.getContext('2d').drawImage(img, 0, 0, w, h);
+      _lancImageData = canvas.toDataURL('image/jpeg', 0.78);
+      _showLancImagePreview(_lancImageData);
+    };
+    img.src = ev.target.result;
+  };
+  reader.readAsDataURL(file);
+}
+
+function _showLancImagePreview(src) {
+  const thumb = document.getElementById('lanc-imagem-thumb');
+  const prev = document.getElementById('lanc-imagem-preview');
+  if (!thumb || !prev) return;
+  thumb.src = src;
+  prev.style.display = 'flex';
+}
+
+function clearLancImagem() {
+  _lancImageData = null;
+  const inp = document.getElementById('lanc-imagem');
+  if (inp) inp.value = '';
+  const prev = document.getElementById('lanc-imagem-preview');
+  if (prev) prev.style.display = 'none';
+  const thumb = document.getElementById('lanc-imagem-thumb');
+  if (thumb) thumb.src = '';
+}
+
+function lancImagemAmplia() {
+  const src = document.getElementById('lanc-imagem-thumb')?.src;
+  if (!src) return;
+  document.getElementById('img-fullview-src').src = src;
+  document.getElementById('img-fullview').style.display = 'flex';
 }
 
 // ============================================================
