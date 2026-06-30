@@ -533,6 +533,23 @@ tbody tr:hover td{background:#fafafe}
         <div class="fg"><label>E-mail</label><input id="forn-email" type="email" placeholder="email@exemplo.com"></div>
         <div class="fg"><label>Ativo</label><select id="forn-ativo"><option value="1">Sim</option><option value="0">Não</option></select></div>
       </div>
+      <div class="form-divider">Dados PIX para pagamento</div>
+      <div class="form-row cols2">
+        <div class="fg">
+          <label>Tipo de chave PIX</label>
+          <select id="forn-pix-tipo">
+            <option value="">Sem PIX cadastrado</option>
+            <option value="CPF/CNPJ">CPF / CNPJ</option>
+            <option value="E-mail">E-mail</option>
+            <option value="Celular">Celular</option>
+            <option value="Aleatória">Chave aleatória</option>
+          </select>
+        </div>
+        <div class="fg">
+          <label>Chave PIX</label>
+          <input id="forn-pix-chave" placeholder="Cole a chave PIX aqui">
+        </div>
+      </div>
     </div>
     <div class="modal-ft">
       <button class="btn btn-ghost" onclick="closeModal('modal-fornecedor')">Cancelar</button>
@@ -644,6 +661,15 @@ tbody tr:hover td{background:#fafafe}
 
       <!-- EXTRAS: apenas Contas a Pagar -->
       <div id="pagar-extras" style="display:none">
+        <!-- PIX do fornecedor (auto-preenchido) -->
+        <div id="pix-info-box" style="display:none;background:#f0f9f4;border:1.5px solid #34c77b;border-radius:10px;padding:12px 16px;margin-bottom:12px">
+          <div style="font-size:11px;font-weight:600;color:#1a9e5c;margin-bottom:6px;letter-spacing:.3px">🟢 PIX DO FORNECEDOR</div>
+          <div style="display:flex;gap:16px;align-items:center;flex-wrap:wrap">
+            <span style="font-size:12px;color:#444"><b style="color:#1a9e5c" id="pix-tipo-label"></b></span>
+            <span style="font-size:13px;font-family:monospace;background:#fff;border:1px solid #b8edd2;border-radius:6px;padding:4px 10px;cursor:pointer;user-select:all" id="pix-chave-label" title="Clique para copiar" onclick="copiarPix()"></span>
+            <span id="pix-copiado" style="display:none;font-size:11px;color:#1a9e5c;font-weight:600">✔ Copiado!</span>
+          </div>
+        </div>
         <div class="form-divider">Boleto / Parcela</div>
         <div class="form-row cols2">
           <div class="fg">
@@ -930,6 +956,28 @@ function ssSelect(wrapId, value, label) {
   if (wrap)   wrap.classList.remove('open');
   _ssCommitted[wrapId] = {value, label};
   ssFill(wrapId, '', value);
+  _preencherPix(value);
+}
+function _preencherPix(fornId) {
+  const box = document.getElementById('pix-info-box');
+  if (!box) return;
+  const f = db.get('fornecedores').find(x=>String(x.id)===String(fornId));
+  if (f && f.pixChave) {
+    document.getElementById('pix-tipo-label').textContent = f.pixTipo || 'PIX';
+    document.getElementById('pix-chave-label').textContent = f.pixChave;
+    document.getElementById('pix-copiado').style.display = 'none';
+    box.style.display = 'block';
+  } else {
+    box.style.display = 'none';
+  }
+}
+function copiarPix() {
+  const chave = document.getElementById('pix-chave-label')?.textContent;
+  if (!chave) return;
+  navigator.clipboard.writeText(chave).then(() => {
+    const el = document.getElementById('pix-copiado');
+    if (el) { el.style.display='inline'; setTimeout(()=>{el.style.display='none';},2000); }
+  });
 }
 
 // Fecha dropdown e restaura valor ao clicar fora
@@ -1089,6 +1137,8 @@ function editForn(id){
   document.getElementById('forn-fone').value=f.fone||'';
   document.getElementById('forn-email').value=f.email||'';
   document.getElementById('forn-ativo').value=f.ativo;
+  document.getElementById('forn-pix-tipo').value=f.pixTipo||'';
+  document.getElementById('forn-pix-chave').value=f.pixChave||'';
   document.getElementById('modal-forn-title').textContent='🏢 Editar Fornecedor';
   openModal('modal-fornecedor');
 }
@@ -1097,7 +1147,7 @@ function salvarFornecedor(){
   if(!nome){alert('Informe o nome.');return;}
   const list=db.get('fornecedores');
   const editId=parseInt(document.getElementById('forn-edit-id').value)||0;
-  const obj={nome,tipo:document.getElementById('forn-tipo').value,doc:document.getElementById('forn-doc').value.trim(),fone:document.getElementById('forn-fone').value.trim(),email:document.getElementById('forn-email').value.trim(),ativo:parseInt(document.getElementById('forn-ativo').value)};
+  const obj={nome,tipo:document.getElementById('forn-tipo').value,doc:document.getElementById('forn-doc').value.trim(),fone:document.getElementById('forn-fone').value.trim(),email:document.getElementById('forn-email').value.trim(),ativo:parseInt(document.getElementById('forn-ativo').value),pixTipo:document.getElementById('forn-pix-tipo').value,pixChave:document.getElementById('forn-pix-chave').value.trim()};
   if(editId){Object.assign(list.find(x=>x.id===editId)||{},{...obj,id:editId});}
   else{list.push({...obj,id:db.nextId(list)});}
   db.set('fornecedores',list);
@@ -1273,6 +1323,7 @@ function openLancamento(tipo, editData){
     document.getElementById('lanc-centro').value='';
     if(_isPagar){document.getElementById('lanc-parcela').value='';document.getElementById('lanc-codbarras').value='';}
     ssInit('ss-forn-wrap', fornSorted().filter(f=>f.ativo).map(f=>({value:f.id,label:f.nome})), null);
+    const _pixBox=document.getElementById('pix-info-box');if(_pixBox)_pixBox.style.display='none';
   }
   if(editData){
     document.getElementById('lanc-edit-id').value=editData.id;
@@ -1295,6 +1346,7 @@ function openLancamento(tipo, editData){
       document.getElementById('lanc-banco').value=editData.banco||'';
       document.getElementById('lanc-centro').value=editData.centro||'';
       ssInit('ss-forn-wrap', fornSorted().filter(f=>f.ativo).map(f=>({value:f.id,label:f.nome})), editData.fornecedor);
+      _preencherPix(editData.fornecedor);
     },30);
   }
   openModal('modal-lancamento');
