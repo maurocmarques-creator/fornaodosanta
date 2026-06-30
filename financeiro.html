@@ -675,7 +675,7 @@ tbody tr:hover td{background:#fafafe}
           <span id="pix-copiado" style="display:none;font-size:11px;color:#1a9e5c;font-weight:600">✔ Copiado!</span>
         </div>
       </div>
-      <div class="form-row cols2">
+      <div class="form-row cols3">
         <div class="fg">
           <label class="field-req">Banco</label>
           <select id="lanc-banco" style="padding:9px 12px;border:1.5px solid #dde0ee;border-radius:8px;font-size:13px;outline:none"><option value="">— Selecione —</option></select>
@@ -683,6 +683,10 @@ tbody tr:hover td{background:#fafafe}
         <div class="fg">
           <label class="field-req">Centro de custo</label>
           <select id="lanc-centro" style="padding:9px 12px;border:1.5px solid #dde0ee;border-radius:8px;font-size:13px;outline:none"><option value="">— Selecione —</option></select>
+        </div>
+        <div class="fg">
+          <label>Forma de pagamento</label>
+          <select id="lanc-forma" style="padding:9px 12px;border:1.5px solid #dde0ee;border-radius:8px;font-size:13px;outline:none"><option value="">— Selecione —</option></select>
         </div>
       </div>
 
@@ -1407,6 +1411,9 @@ function openLancamento(tipo, editData){
     document.getElementById('obs-count').textContent='0/200';
     document.getElementById('lanc-banco').value='';
     document.getElementById('lanc-centro').value='';
+    const _sfL=document.getElementById('lanc-forma');
+    _sfL.innerHTML='<option value="">— Selecione —</option>'+db.get('formas').filter(f=>f.ativo).map(f=>`<option value="${f.id}">${f.nome}</option>`).join('');
+    _sfL.value='';
     if(_isPagar){document.getElementById('lanc-parcela').value='';document.getElementById('lanc-codbarras').value='';}
     ssInit('ss-forn-wrap', fornSorted().filter(f=>f.ativo).map(f=>({value:f.id,label:f.nome})), null);
     const _pixBox=document.getElementById('pix-info-box');if(_pixBox)_pixBox.style.display='none';
@@ -1431,6 +1438,9 @@ function openLancamento(tipo, editData){
     setTimeout(()=>{
       document.getElementById('lanc-banco').value=editData.banco||'';
       document.getElementById('lanc-centro').value=editData.centro||'';
+      const _sfLE=document.getElementById('lanc-forma');
+      _sfLE.innerHTML='<option value="">— Selecione —</option>'+db.get('formas').filter(f=>f.ativo).map(f=>`<option value="${f.id}">${f.nome}</option>`).join('');
+      if(editData.formaPagamento)_sfLE.value=editData.formaPagamento;
       ssInit('ss-forn-wrap', fornSorted().filter(f=>f.ativo).map(f=>({value:f.id,label:f.nome})), editData.fornecedor);
       _preencherPix(editData.fornecedor);
     },30);
@@ -1455,6 +1465,7 @@ function salvarLancamento(){
   const banco=document.getElementById('lanc-banco').value;
   const cc=document.getElementById('lanc-centro').value;
   const obs=document.getElementById('lanc-obs').value.trim();
+  const formaLanc=document.getElementById('lanc-forma').value;
   const parcela=tipo==='pagar'?(document.getElementById('lanc-parcela')?.value.trim()||''):'';
   const codbarras=tipo==='pagar'?(document.getElementById('lanc-codbarras')?.value.trim()||''):'';
 
@@ -1474,6 +1485,7 @@ function salvarLancamento(){
   const prevStatus=list.find(x=>x.id===editId)?.status||'pendente';
   const status=liq?(tipo==='pagar'?'pago':'recebido'):(['pago','recebido'].includes(prevStatus)?prevStatus:'pendente');
   const obj={doc,comp,valor,emissao:emis,vencimento:venc,liquidacao:liq,fornecedor:parseInt(fornId),banco:parseInt(banco),centro:parseInt(cc),obs,status};
+  if(formaLanc)obj.formaPagamento=parseInt(formaLanc);
   if(tipo==='pagar'){if(parcela)obj.parcela=parcela;if(codbarras)obj.codbarras=codbarras;if(_lancImageData)obj.temImagem=1;}
 
   if(editId){
