@@ -162,6 +162,34 @@ tbody tr:hover td{background:#fafafe}
 .ia-bar{height:7px;border-radius:999px;background:#3b82f6;transition:.3s}
 .ia-bar.green{background:#22c55e}.ia-bar.red{background:#ef4444}.ia-bar.amber{background:#f59e0b}
 .ia-section-title{font-size:14px;font-weight:800;color:#1c1c2e;margin:20px 0 10px;display:flex;align-items:center;gap:8px}
+.ia-chat-wrap{background:#fff;border-radius:16px;border:1px solid #eeeef8;overflow:hidden;box-shadow:0 2px 8px rgba(0,0,0,.06);margin-top:24px}
+.ia-chat-hd{background:#1c1c2e;padding:14px 20px;display:flex;align-items:center;gap:10px}
+.ia-chat-hd-title{color:#fff;font-weight:700;font-size:14px}
+.ia-chat-hd-sub{color:#8080b8;font-size:12px;margin-left:auto}
+.ia-chat-key{display:flex;align-items:center;gap:8px;padding:10px 16px;background:#f8f8fd;border-bottom:1px solid #eeeef8}
+.ia-chat-key input{flex:1;padding:7px 12px;border:1.5px solid #dde0ee;border-radius:8px;font-size:12px;font-family:monospace;color:#555;outline:none}
+.ia-chat-key input:focus{border-color:#6366f1}
+.ia-chat-key-lbl{font-size:11px;color:#888;white-space:nowrap}
+.ia-msgs{height:340px;overflow-y:auto;padding:16px;display:flex;flex-direction:column;gap:12px;background:#fafafa}
+.ia-msg{display:flex;gap:10px;max-width:85%}
+.ia-msg.user{align-self:flex-end;flex-direction:row-reverse}
+.ia-msg-bubble{padding:10px 14px;border-radius:12px;font-size:13px;line-height:1.55;white-space:pre-wrap;word-break:break-word}
+.ia-msg.user .ia-msg-bubble{background:#1c1c2e;color:#fff;border-bottom-right-radius:4px}
+.ia-msg.assistant .ia-msg-bubble{background:#fff;color:#1c1c2e;border:1px solid #eeeef8;border-bottom-left-radius:4px;box-shadow:0 1px 3px rgba(0,0,0,.06)}
+.ia-msg-avatar{width:30px;height:30px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:14px;flex-shrink:0;margin-top:2px}
+.ia-msg.user .ia-msg-avatar{background:#e05c1a;color:#fff}
+.ia-msg.assistant .ia-msg-avatar{background:#6366f1;color:#fff}
+.ia-typing{display:flex;gap:4px;padding:10px 14px;background:#fff;border:1px solid #eeeef8;border-radius:12px;border-bottom-left-radius:4px}
+.ia-typing span{width:7px;height:7px;border-radius:50%;background:#aaa;animation:iaBounce .8s infinite}
+.ia-typing span:nth-child(2){animation-delay:.15s}
+.ia-typing span:nth-child(3){animation-delay:.3s}
+@keyframes iaBounce{0%,80%,100%{transform:translateY(0)}40%{transform:translateY(-6px)}}
+.ia-chat-input{display:flex;gap:8px;padding:12px 16px;border-top:1px solid #eeeef8;background:#fff}
+.ia-chat-input textarea{flex:1;padding:10px 14px;border:1.5px solid #dde0ee;border-radius:10px;font-size:13px;resize:none;outline:none;font-family:inherit;line-height:1.4;max-height:120px;min-height:42px}
+.ia-chat-input textarea:focus{border-color:#6366f1}
+.ia-chat-sugs{display:flex;flex-wrap:wrap;gap:6px;padding:8px 16px;border-top:1px solid #f0f0f8;background:#fafafa}
+.ia-sug{padding:5px 12px;background:#fff;border:1.5px solid #dde0ee;border-radius:20px;font-size:11.5px;color:#555;cursor:pointer;transition:.15s;white-space:nowrap}
+.ia-sug:hover{background:#1c1c2e;color:#fff;border-color:#1c1c2e}
 .ia-period-btn{padding:6px 14px;border:1.5px solid #dde0ee;background:#fff;border-radius:20px;font-size:12px;font-weight:600;color:#666;cursor:pointer;transition:.15s}
 .ia-period-btn:hover,.ia-period-btn.active{background:#1c1c2e;color:#fff;border-color:#1c1c2e}
 .cc-tab{padding:8px 20px;border:none;border-radius:8px 8px 0 0;background:#f0f0f8;color:#888;font-size:13px;font-weight:600;cursor:pointer;transition:.15s}
@@ -331,7 +359,7 @@ tbody tr:hover td{background:#fafafe}
           <h2>Contas a receber</h2>
           <div class="hd-right">
             <select id="filter-receber-status" onchange="renderReceber()" style="padding:7px 10px;border:1.5px solid #dde0ee;border-radius:8px;font-size:12px;outline:none">
-              <option value="">Todos os status</option><option value="pendente">Pendente</option><option value="recebido">Recebido</option><option value="vencido">Vencido</option>
+              <option value="">Todos os status</option><option value="pendente">Pendente</option><option value="recebido">Recebido</option><option value="vencido">Vencido</option><option value="pendente_vencido">Pendente / Vencido</option>
             </select>
             <select id="filter-receber-comp" onchange="renderReceber()" style="padding:7px 10px;border:1.5px solid #dde0ee;border-radius:8px;font-size:12px;outline:none">
               <option value="">Todas competências</option>
@@ -353,7 +381,7 @@ tbody tr:hover td{background:#fafafe}
           <h2>Contas a pagar</h2>
           <div class="hd-right">
             <select id="filter-pagar-status" onchange="renderPagar()" style="padding:7px 10px;border:1.5px solid #dde0ee;border-radius:8px;font-size:12px;outline:none">
-              <option value="">Todos os status</option><option value="pendente">Pendente</option><option value="pago">Pago</option><option value="vencido">Vencido</option>
+              <option value="">Todos os status</option><option value="pendente">Pendente</option><option value="pago">Pago</option><option value="vencido">Vencido</option><option value="pendente_vencido">Pendente / Vencido</option>
             </select>
             <select id="filter-pagar-comp" onchange="renderPagar()" style="padding:7px 10px;border:1.5px solid #dde0ee;border-radius:8px;font-size:12px;outline:none">
               <option value="">Todas competências</option>
@@ -549,7 +577,48 @@ tbody tr:hover td{background:#fafafe}
           <button class="btn btn-primary" onclick="renderIA()">🤖 Analisar</button>
         </div>
       </div>
-      <div id="ia-result" style="padding:20px 24px 32px"></div>
+      <div id="ia-result" style="padding:20px 24px 0"></div>
+
+      <!-- CHAT CLAUDE -->
+      <div style="padding:0 24px 32px">
+        <div class="ia-chat-wrap">
+          <div class="ia-chat-hd">
+            <span style="font-size:20px">🤖</span>
+            <div>
+              <div class="ia-chat-hd-title">Pergunte ao Claude</div>
+              <div style="color:#8080b8;font-size:11px">Análise financeira com IA — baseada nos seus dados reais</div>
+            </div>
+            <div class="ia-chat-hd-sub">
+              <button class="btn btn-ghost btn-sm" onclick="iaMostrarConfig()" style="color:#8080b8;font-size:11px;border-color:#444">⚙️ API Key</button>
+            </div>
+          </div>
+          <div id="ia-key-config" style="display:none" class="ia-chat-key">
+            <span class="ia-chat-key-lbl">🔑 Anthropic API Key:</span>
+            <input type="password" id="ia-api-key" placeholder="sk-ant-..." onchange="iaSalvarKey()">
+            <button class="btn btn-primary btn-sm" onclick="iaSalvarKey();iaMostrarConfig()">Salvar</button>
+          </div>
+          <div class="ia-chat-sugs">
+            <span class="ia-sug" onclick="iaUsarSug(this)">Analise meu fluxo de caixa</span>
+            <span class="ia-sug" onclick="iaUsarSug(this)">Quais pagamentos devo priorizar?</span>
+            <span class="ia-sug" onclick="iaUsarSug(this)">Tenho risco de inadimplência?</span>
+            <span class="ia-sug" onclick="iaUsarSug(this)">Onde posso reduzir custos?</span>
+            <span class="ia-sug" onclick="iaUsarSug(this)">Sugira negociações com fornecedores</span>
+            <span class="ia-sug" onclick="iaUsarSug(this)">Como está minha saúde financeira?</span>
+          </div>
+          <div class="ia-msgs" id="ia-msgs">
+            <div class="ia-msg assistant">
+              <div class="ia-msg-avatar">🤖</div>
+              <div class="ia-msg-bubble">Olá! Sou o Claude, seu assistente financeiro. Tenho acesso completo aos seus dados financeiros — saldos, contas a pagar e receber, fornecedores, centros de custo e histórico mensal.<br><br>Pode me perguntar sobre fluxo de caixa, riscos, negociações, ou qualquer análise que precisar. Como posso ajudar?</div>
+            </div>
+          </div>
+          <div class="ia-chat-input">
+            <textarea id="ia-input" placeholder="Escreva sua pergunta ou peça uma análise..." rows="1"
+              onkeydown="if(event.key==='Enter'&&!event.shiftKey){event.preventDefault();iaEnviar()}"
+              oninput="this.style.height='auto';this.style.height=Math.min(this.scrollHeight,120)+'px'"></textarea>
+            <button class="btn btn-primary" onclick="iaEnviar()" style="align-self:flex-end;padding:10px 18px">Enviar</button>
+          </div>
+        </div>
+      </div>
     </div>
   </div><!-- /content -->
 </div><!-- /main -->
@@ -595,8 +664,9 @@ tbody tr:hover td{background:#fafafe}
         <div class="fg"><label>CNPJ / CPF</label><input id="forn-doc" placeholder="00.000.000/0001-00" maxlength="18"></div>
         <div class="fg"><label>Contato (WhatsApp)</label><input id="forn-fone" placeholder="(00) 9 0000-0000"></div>
       </div>
-      <div class="form-row cols2">
+      <div class="form-row cols3">
         <div class="fg"><label>E-mail</label><input id="forn-email" type="email" placeholder="email@exemplo.com"></div>
+        <div class="fg"><label>Centro de Custo padrão</label><select id="forn-centro"><option value="">— Nenhum —</option></select></div>
         <div class="fg"><label>Ativo</label><select id="forn-ativo"><option value="1">Sim</option><option value="0">Não</option></select></div>
       </div>
       <div class="form-divider">Dados PIX para pagamento</div>
@@ -1060,15 +1130,21 @@ function ssSelect(wrapId, value, label) {
 }
 function _preencherPix(fornId) {
   const box = document.getElementById('pix-info-box');
-  if (!box) return;
   const f = db.get('fornecedores').find(x=>String(x.id)===String(fornId));
-  if (f && f.pixChave) {
-    document.getElementById('pix-tipo-label').textContent = f.pixTipo || 'PIX';
-    document.getElementById('pix-chave-label').textContent = f.pixChave;
-    document.getElementById('pix-copiado').style.display = 'none';
-    box.style.display = 'block';
-  } else {
-    box.style.display = 'none';
+  if (box) {
+    if (f && f.pixChave) {
+      document.getElementById('pix-tipo-label').textContent = f.pixTipo || 'PIX';
+      document.getElementById('pix-chave-label').textContent = f.pixChave;
+      document.getElementById('pix-copiado').style.display = 'none';
+      box.style.display = 'block';
+    } else {
+      box.style.display = 'none';
+    }
+  }
+  // Auto-preenche Centro de Custo padrão do fornecedor
+  const selCC = document.getElementById('lanc-centro');
+  if (selCC && f && f.centro) {
+    selCC.value = f.centro;
   }
 }
 function copiarPix() {
@@ -1240,6 +1316,7 @@ function editForn(id){
   document.getElementById('forn-ativo').value=f.ativo;
   document.getElementById('forn-pix-tipo').value=f.pixTipo||'';
   document.getElementById('forn-pix-chave').value=f.pixChave||'';
+  document.getElementById('forn-centro').value=f.centro||'';
   document.getElementById('modal-forn-title').textContent='🏢 Editar Fornecedor';
   openModal('modal-fornecedor');
 }
@@ -1248,11 +1325,19 @@ function salvarFornecedor(){
   if(!nome){alert('Informe o nome.');return;}
   const list=db.get('fornecedores');
   const editId=parseInt(document.getElementById('forn-edit-id').value)||0;
+  const centroForn=parseInt(document.getElementById('forn-centro').value)||0;
   const obj={nome,tipo:document.getElementById('forn-tipo').value,doc:document.getElementById('forn-doc').value.trim(),fone:document.getElementById('forn-fone').value.trim(),email:document.getElementById('forn-email').value.trim(),ativo:parseInt(document.getElementById('forn-ativo').value),pixTipo:document.getElementById('forn-pix-tipo').value,pixChave:document.getElementById('forn-pix-chave').value.trim()};
+  if(centroForn)obj.centro=centroForn;
   if(editId){Object.assign(list.find(x=>x.id===editId)||{},{...obj,id:editId});}
   else{list.push({...obj,id:db.nextId(list)});}
   db.set('fornecedores',list);
   closeModal('modal-fornecedor');
+  // Limpar todos os campos
+  ['forn-nome','forn-doc','forn-fone','forn-email','forn-pix-chave'].forEach(id=>{const el=document.getElementById(id);if(el)el.value='';});
+  document.getElementById('forn-tipo').value='Fornecedor';
+  document.getElementById('forn-ativo').value='1';
+  document.getElementById('forn-pix-tipo').value='';
+  document.getElementById('forn-centro').value='';
   document.getElementById('forn-edit-id').value='';
   document.getElementById('modal-forn-title').textContent='🏢 Novo Fornecedor';
   renderFornecedores(); updateSelects();
@@ -1418,9 +1503,10 @@ function populateCompFilter(key, selId, curVal){
 function renderReceber(){
   const all=db.get('receber');
   const filterSt=document.getElementById('filter-receber-status')?.value||'';
+  const stMatchRec=x=>!filterSt||(filterSt==='pendente_vencido'?['pendente','vencido'].includes(calcStatus(x,'receber')):calcStatus(x,'receber')===filterSt);
   const filterCp=document.getElementById('filter-receber-comp')?.value||'';
   populateCompFilter('receber','filter-receber-comp',filterCp);
-  const list=all.filter(x=>(!filterSt||calcStatus(x,'receber')===filterSt)&&(!filterCp||x.comp===filterCp));
+  const list=all.filter(x=>stMatchRec(x)&&(!filterCp||x.comp===filterCp));
   document.getElementById('kpi-receber').innerHTML=kpiLanc(all,'receber');
   document.getElementById('tbl-receber').innerHTML=list.length
     ?list.sort((a,b)=>dateKey(a.vencimento)>dateKey(b.vencimento)?1:-1).map(x=>lançRow(x,'receber','renderReceber')).join('')
@@ -1433,6 +1519,7 @@ function renderReceber(){
 function renderPagar(){
   const all=db.get('pagar');
   const filterSt=document.getElementById('filter-pagar-status')?.value||'';
+  const stMatchPag=x=>!filterSt||(filterSt==='pendente_vencido'?['pendente','vencido'].includes(calcStatus(x,'pagar')):calcStatus(x,'pagar')===filterSt);
   const filterCp=document.getElementById('filter-pagar-comp')?.value||'';
   const filterFn=document.getElementById('filter-pagar-forn')?.value||'';
   const filterCc=document.getElementById('filter-pagar-cc')?.value||'';
@@ -1443,7 +1530,7 @@ function renderPagar(){
   // popular centros de custo
   const selCc=document.getElementById('filter-pagar-cc');
   if(selCc){const cur=selCc.value;selCc.innerHTML='<option value="">Todos os centros</option>'+(db.get('centros')||[]).sort((a,b)=>(a.descricao||a.codigo||'').localeCompare((b.descricao||b.codigo||''),'pt-BR')).map(c=>`<option value="${c.id}">${c.codigo} — ${c.descricao}</option>`).join('');selCc.value=cur;}
-  const list=all.filter(x=>(!filterSt||calcStatus(x,'pagar')===filterSt)&&(!filterCp||x.comp===filterCp)&&(!filterFn||String(x.fornecedor)===filterFn)&&(!filterCc||String(x.centro)===filterCc));
+  const list=all.filter(x=>stMatchPag(x)&&(!filterCp||x.comp===filterCp)&&(!filterFn||String(x.fornecedor)===filterFn)&&(!filterCc||String(x.centro)===filterCc));
   document.getElementById('kpi-pagar').innerHTML=kpiLanc(all,'pagar');
   document.getElementById('tbl-pagar').innerHTML=list.length
     ?list.sort((a,b)=>dateKey(a.vencimento)>dateKey(b.vencimento)?1:-1).map(x=>lançRow(x,'pagar','renderPagar')).join('')
@@ -1871,6 +1958,8 @@ function updateSelects(){
   });
   const selC=document.getElementById('lanc-centro');
   if(selC){const cur=selC.value;selC.innerHTML='<option value="">— Selecione —</option>'+centros.map(c=>`<option value="${c.id}">${c.codigo} — ${c.descricao}</option>`).join('');if(cur)selC.value=cur;}
+  const selFC=document.getElementById('forn-centro');
+  if(selFC){const cur=selFC.value;selFC.innerHTML='<option value="">— Nenhum —</option>'+centros.map(c=>`<option value="${c.id}">${c.codigo} — ${c.descricao}</option>`).join('');if(cur)selFC.value=cur;}
 }
 
 // ============================================================
@@ -2451,8 +2540,194 @@ function saveFbConfig() {
 })();
 
 // ══════════════════════════════════════════════════════════════════
-// ANÁLISE IA
+// ANÁLISE IA — CHAT CLAUDE
 // ══════════════════════════════════════════════════════════════════
+let _iaMsgs=[];
+
+function iaMostrarConfig(){
+  const el=document.getElementById('ia-key-config');
+  if(!el)return;
+  el.style.display=el.style.display==='none'?'':'none';
+  const k=localStorage.getItem('ia_claude_key')||'';
+  document.getElementById('ia-api-key').value=k;
+}
+
+function iaSalvarKey(){
+  const v=document.getElementById('ia-api-key').value.trim();
+  if(v)localStorage.setItem('ia_claude_key',v);
+}
+
+function iaUsarSug(el){
+  const inp=document.getElementById('ia-input');
+  if(!inp)return;
+  inp.value=el.textContent;
+  inp.focus();
+  inp.style.height='auto';
+  inp.style.height=Math.min(inp.scrollHeight,120)+'px';
+}
+
+function iaGetContexto(){
+  const today=new Date();
+  const todayK=today.toISOString().slice(0,10).replace(/-/g,'');
+  const next30K=new Date(today.getTime()+30*864e5).toISOString().slice(0,10).replace(/-/g,'');
+
+  const allPag=db.get('pagar');
+  const allRec=db.get('receber');
+  const bancos=db.get('bancos').filter(b=>b.ativo);
+  const centros=db.get('centros');
+  const forn=db.get('fornecedores');
+
+  const saldoAtual=bancos.reduce((s,b)=>s+saldoAtualBanco(b),0);
+
+  const pagVenc=allPag.filter(x=>x.status!=='pago'&&dateKey(x.vencimento)<todayK);
+  const recVenc=allRec.filter(x=>x.status!=='recebido'&&dateKey(x.vencimento)<todayK);
+  const pagProx30=allPag.filter(x=>x.status!=='pago'&&dateKey(x.vencimento)>=todayK&&dateKey(x.vencimento)<=next30K);
+  const recProx30=allRec.filter(x=>x.status!=='recebido'&&dateKey(x.vencimento)>=todayK&&dateKey(x.vencimento)<=next30K);
+
+  const months6=[];
+  for(let i=5;i>=0;i--){
+    const d=new Date(today.getFullYear(),today.getMonth()-i,1);
+    const comp=String(d.getMonth()+1).padStart(2,'0')+'/'+d.getFullYear();
+    const rec=allRec.filter(x=>x.comp===comp).reduce((s,x)=>s+x.valor,0);
+    const pag=allPag.filter(x=>x.comp===comp).reduce((s,x)=>s+x.valor,0);
+    months6.push(`${comp}: Receitas=${R(rec)}, Despesas=${R(pag)}, Resultado=${R(rec-pag)}`);
+  }
+
+  const topForn={};
+  allPag.forEach(p=>{if(!topForn[p.fornecedor])topForn[p.fornecedor]=0;topForn[p.fornecedor]+=p.valor;});
+  const topFornList=Object.entries(topForn).sort((a,b)=>b[1]-a[1]).slice(0,5)
+    .map(([id,v])=>`${nomeForn(id)}: ${R(v)}`).join(', ');
+
+  const ccDespesas={};
+  allPag.forEach(p=>{if(!ccDespesas[p.centro])ccDespesas[p.centro]=0;ccDespesas[p.centro]+=p.valor;});
+  const topCC=Object.entries(ccDespesas).sort((a,b)=>b[1]-a[1]).slice(0,5)
+    .map(([id,v])=>{const cc=centros.find(c=>c.id==id);return`${cc?cc.codigo+'-'+cc.descricao:'Sem CC'}: ${R(v)}`;}).join(', ');
+
+  return `CONTEXTO FINANCEIRO — PizzaOS (data: ${today.toLocaleDateString('pt-BR')}):
+
+SALDO ATUAL (bancos ativos consolidados): ${R(saldoAtual)}
+Bancos: ${bancos.map(b=>b.nome+': '+R(saldoAtualBanco(b))).join(' | ')}
+
+PAGAMENTOS VENCIDOS (${pagVenc.length} itens): ${R(pagVenc.reduce((s,x)=>s+x.valor,0))}
+${pagVenc.slice(0,5).map(p=>`  - ${nomeForn(p.fornecedor)}: ${R(p.valor)} (venc. ${p.vencimento})`).join('
+')}
+
+RECEBIMENTOS VENCIDOS (${recVenc.length} itens): ${R(recVenc.reduce((s,x)=>s+x.valor,0))}
+${recVenc.slice(0,5).map(r=>`  - ${nomeForn(r.fornecedor)}: ${R(r.valor)} (venc. ${r.vencimento})`).join('
+')}
+
+PRÓXIMOS 30 DIAS — A PAGAR: ${R(pagProx30.reduce((s,x)=>s+x.valor,0))} (${pagProx30.length} itens)
+${pagProx30.slice(0,5).map(p=>`  - ${nomeForn(p.fornecedor)}: ${R(p.valor)} venc. ${p.vencimento}`).join('
+')}
+
+PRÓXIMOS 30 DIAS — A RECEBER: ${R(recProx30.reduce((s,x)=>s+x.valor,0))} (${recProx30.length} itens)
+
+HISTÓRICO MENSAL (6 meses):
+${months6.join('
+')}
+
+TOP FORNECEDORES (despesas totais): ${topFornList}
+
+TOP CENTROS DE CUSTO: ${topCC}
+
+Total de lançamentos: ${allPag.length} a pagar, ${allRec.length} a receber`;
+}
+
+async function iaClaude(pergunta){
+  const key=(localStorage.getItem('ia_claude_key')||'').trim();
+  if(!key){
+    return '⚠️ Configure sua API Key da Anthropic primeiro — clique em **⚙️ API Key** acima e cole sua chave (sk-ant-...). Obtenha em: https://console.anthropic.com';
+  }
+
+  _iaMsgs.push({role:'user',content:pergunta});
+
+  const systemPrompt=`Você é um assistente financeiro especializado, analisando dados reais do PizzaOS Módulo Financeiro — sistema de gestão financeira de uma empresa brasileira.
+
+${iaGetContexto()}
+
+INSTRUÇÕES:
+- Responda sempre em português brasileiro
+- Seja objetivo e prático — foque em ações concretas
+- Use os dados reais fornecidos acima para embasar suas análises
+- Quando identificar riscos, sugira soluções específicas
+- Formate valores sempre como R$ X.XXX,XX
+- Mantenha respostas concisas mas completas`;
+
+  const resp=await fetch('https://api.anthropic.com/v1/messages',{
+    method:'POST',
+    headers:{
+      'Content-Type':'application/json',
+      'x-api-key':key,
+      'anthropic-version':'2023-06-01',
+      'anthropic-dangerous-allow-browser':'true'
+    },
+    body:JSON.stringify({
+      model:'claude-haiku-4-5-20251001',
+      max_tokens:1024,
+      system:systemPrompt,
+      messages:_iaMsgs.slice(-10)
+    })
+  });
+
+  if(!resp.ok){
+    const err=await resp.json().catch(()=>({}));
+    _iaMsgs.pop();
+    return `❌ Erro na API: ${err.error?.message||resp.status}. Verifique sua API Key.`;
+  }
+
+  const data=await resp.json();
+  const reply=data.content?.[0]?.text||'Sem resposta.';
+  _iaMsgs.push({role:'assistant',content:reply});
+  return reply;
+}
+
+function iaAdicionarMsg(role,texto){
+  const container=document.getElementById('ia-msgs');
+  if(!container)return;
+  const div=document.createElement('div');
+  div.className=`ia-msg ${role}`;
+  const avatar=role==='user'?'👤':'🤖';
+  div.innerHTML=`<div class="ia-msg-avatar">${avatar}</div><div class="ia-msg-bubble">${texto.replace(/\*\*(.*?)\*\*/g,'<strong>$1</strong>').replace(/
+/g,'<br>')}</div>`;
+  container.appendChild(div);
+  container.scrollTop=container.scrollHeight;
+}
+
+function iaDigitando(){
+  const container=document.getElementById('ia-msgs');
+  if(!container)return null;
+  const div=document.createElement('div');
+  div.className='ia-msg assistant';
+  div.id='ia-typing-indicator';
+  div.innerHTML='<div class="ia-msg-avatar">🤖</div><div class="ia-typing"><span></span><span></span><span></span></div>';
+  container.appendChild(div);
+  container.scrollTop=container.scrollHeight;
+  return div;
+}
+
+async function iaEnviar(){
+  const inp=document.getElementById('ia-input');
+  if(!inp)return;
+  const texto=inp.value.trim();
+  if(!texto)return;
+  inp.value='';
+  inp.style.height='42px';
+
+  iaAdicionarMsg('user',texto);
+  const typing=iaDigitando();
+
+  try{
+    const resposta=await iaClaude(texto);
+    if(typing)typing.remove();
+    iaAdicionarMsg('assistant',resposta);
+  }catch(e){
+    if(typing)typing.remove();
+    iaAdicionarMsg('assistant','❌ Erro de conexão: '+e.message);
+  }
+}
+
+// ══════════════════════════════════════════════════════════════════
+// ANÁLISE IA
 function initIA(){
   const today=new Date();
   const di=new Date(today);di.setDate(di.getDate()-90);
