@@ -2609,22 +2609,18 @@ SALDO ATUAL (bancos ativos consolidados): ${R(saldoAtual)}
 Bancos: ${bancos.map(b=>b.nome+': '+R(saldoAtualBanco(b))).join(' | ')}
 
 PAGAMENTOS VENCIDOS (${pagVenc.length} itens): ${R(pagVenc.reduce((s,x)=>s+x.valor,0))}
-${pagVenc.slice(0,5).map(p=>`  - ${nomeForn(p.fornecedor)}: ${R(p.valor)} (venc. ${p.vencimento})`).join('
-')}
+${pagVenc.slice(0,5).map(p=>`  - ${nomeForn(p.fornecedor)}: ${R(p.valor)} (venc. ${p.vencimento})`).join('\n')}
 
 RECEBIMENTOS VENCIDOS (${recVenc.length} itens): ${R(recVenc.reduce((s,x)=>s+x.valor,0))}
-${recVenc.slice(0,5).map(r=>`  - ${nomeForn(r.fornecedor)}: ${R(r.valor)} (venc. ${r.vencimento})`).join('
-')}
+${recVenc.slice(0,5).map(r=>`  - ${nomeForn(r.fornecedor)}: ${R(r.valor)} (venc. ${r.vencimento})`).join('\n')}
 
 PRÓXIMOS 30 DIAS — A PAGAR: ${R(pagProx30.reduce((s,x)=>s+x.valor,0))} (${pagProx30.length} itens)
-${pagProx30.slice(0,5).map(p=>`  - ${nomeForn(p.fornecedor)}: ${R(p.valor)} venc. ${p.vencimento}`).join('
-')}
+${pagProx30.slice(0,5).map(p=>`  - ${nomeForn(p.fornecedor)}: ${R(p.valor)} venc. ${p.vencimento}`).join('\n')}
 
 PRÓXIMOS 30 DIAS — A RECEBER: ${R(recProx30.reduce((s,x)=>s+x.valor,0))} (${recProx30.length} itens)
 
 HISTÓRICO MENSAL (6 meses):
-${months6.join('
-')}
+${months6.join('\n')}
 
 TOP FORNECEDORES (despesas totais): ${topFornList}
 
@@ -2687,8 +2683,7 @@ function iaAdicionarMsg(role,texto){
   const div=document.createElement('div');
   div.className=`ia-msg ${role}`;
   const avatar=role==='user'?'👤':'🤖';
-  div.innerHTML=`<div class="ia-msg-avatar">${avatar}</div><div class="ia-msg-bubble">${texto.replace(/\*\*(.*?)\*\*/g,'<strong>$1</strong>').replace(/
-/g,'<br>')}</div>`;
+  div.innerHTML=`<div class="ia-msg-avatar">${avatar}</div><div class="ia-msg-bubble">${texto.replace(/\*\*(.*?)\*\*/g,'<strong>$1</strong>').replace(/\n/g,'<br>')}</div>`;
   container.appendChild(div);
   container.scrollTop=container.scrollHeight;
 }
