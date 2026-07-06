@@ -144,6 +144,26 @@ tbody tr:hover td{background:#fafafe}
 /* FLUXO TABLE */
 .fluxo-table thead th{background:#1c1c2e;color:#a0a0d0;font-size:10px}
 .cc-tabs{display:flex;gap:4px;padding:12px 16px 0;border-bottom:2px solid #eeeef8;background:#fff}
+.ia-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:16px;margin-bottom:24px}
+.ia-card{background:#fff;border-radius:12px;border:1px solid #eeeef8;padding:20px;box-shadow:0 1px 4px rgba(0,0,0,.06)}
+.ia-card-hd{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:#aaa;margin-bottom:8px}
+.ia-card-val{font-size:24px;font-weight:800;color:#1c1c2e;line-height:1.1}
+.ia-card-sub{font-size:11.5px;color:#888;margin-top:4px}
+.ia-card.ia-ok{border-left:4px solid #22c55e}.ia-card.ia-warn{border-left:4px solid #f59e0b}
+.ia-card.ia-danger{border-left:4px solid #ef4444}.ia-card.ia-blue{border-left:4px solid #3b82f6}
+.ia-insight{background:#fff;border-radius:12px;border:1px solid #eeeef8;padding:14px 18px;margin-bottom:10px;display:flex;gap:14px;align-items:flex-start;box-shadow:0 1px 4px rgba(0,0,0,.04)}
+.ia-insight .ia-icon{font-size:20px;flex-shrink:0;margin-top:2px}
+.ia-insight-body{flex:1}
+.ia-insight-title{font-size:13px;font-weight:700;color:#1c1c2e;margin-bottom:3px}
+.ia-insight-text{font-size:12.5px;color:#555;line-height:1.5}
+.ia-insight.ia-ok{border-left:4px solid #22c55e}.ia-insight.ia-warn{border-left:4px solid #f59e0b}
+.ia-insight.ia-danger{border-left:4px solid #ef4444}.ia-insight.ia-blue{border-left:4px solid #3b82f6}
+.ia-bar-wrap{background:#f0f0f8;border-radius:999px;height:7px;margin:5px 0;overflow:hidden}
+.ia-bar{height:7px;border-radius:999px;background:#3b82f6;transition:.3s}
+.ia-bar.green{background:#22c55e}.ia-bar.red{background:#ef4444}.ia-bar.amber{background:#f59e0b}
+.ia-section-title{font-size:14px;font-weight:800;color:#1c1c2e;margin:20px 0 10px;display:flex;align-items:center;gap:8px}
+.ia-period-btn{padding:6px 14px;border:1.5px solid #dde0ee;background:#fff;border-radius:20px;font-size:12px;font-weight:600;color:#666;cursor:pointer;transition:.15s}
+.ia-period-btn:hover,.ia-period-btn.active{background:#1c1c2e;color:#fff;border-color:#1c1c2e}
 .cc-tab{padding:8px 20px;border:none;border-radius:8px 8px 0 0;background:#f0f0f8;color:#888;font-size:13px;font-weight:600;cursor:pointer;transition:.15s}
 .cc-tab.active{background:#1c1c2e;color:#fff}
 .cc-tab:hover:not(.active){background:#e0e0f0;color:#444}
@@ -221,6 +241,10 @@ tbody tr:hover td{background:#fafafe}
   <div class="sb-group">
     <div class="sb-group-label">Resultado</div>
     <div class="sb-item" onclick="nav('dre',this)"><span class="ic">📋</span> DRE</div>
+  </div>
+  <div class="sb-group">
+    <div class="sb-group-label">Inteligência</div>
+    <div class="sb-item" onclick="nav('ia',this)"><span class="ic">🤖</span> Análise IA</div>
   </div>
 </nav>
 
@@ -508,6 +532,25 @@ tbody tr:hover td{background:#fafafe}
       <div id="dre-area"></div>
     </div>
 
+    <!-- ANÁLISE IA -->
+    <div class="screen" id="s-ia">
+      <div style="padding:20px 24px 12px;border-bottom:1px solid #eeeef8;background:#fff;display:flex;align-items:center;gap:12px;flex-wrap:wrap">
+        <div style="display:flex;gap:6px;flex-wrap:wrap">
+          <button class="ia-period-btn" onclick="setIAPeriodo(30,this)">30 dias</button>
+          <button class="ia-period-btn" onclick="setIAPeriodo(60,this)">60 dias</button>
+          <button class="ia-period-btn active" onclick="setIAPeriodo(90,this)">90 dias</button>
+          <button class="ia-period-btn" onclick="setIAPeriodo(180,this)">6 meses</button>
+          <button class="ia-period-btn" onclick="setIAPeriodo(365,this)">12 meses</button>
+        </div>
+        <div style="display:flex;align-items:center;gap:8px;margin-left:auto">
+          <input type="date" id="ia-di" style="padding:7px 10px;border:1.5px solid #dde0ee;border-radius:8px;font-size:13px" onchange="renderIA()">
+          <span style="color:#aaa">até</span>
+          <input type="date" id="ia-df" style="padding:7px 10px;border:1.5px solid #dde0ee;border-radius:8px;font-size:13px" onchange="renderIA()">
+          <button class="btn btn-primary" onclick="renderIA()">🤖 Analisar</button>
+        </div>
+      </div>
+      <div id="ia-result" style="padding:20px 24px 32px"></div>
+    </div>
   </div><!-- /content -->
 </div><!-- /main -->
 
@@ -1092,7 +1135,7 @@ function topbarAction() {
 }
 
 function renderScreen(id) {
-  const map = {bancos:renderBancos,fornecedores:renderFornecedores,centros:renderCentros,formas:renderFormas,receber:renderReceber,pagar:renderPagar,fluxo:initFluxo,conciliacao:initConciliacao,centrocusto:initCentroCusto,dre:initDRE};
+  const map = {bancos:renderBancos,fornecedores:renderFornecedores,centros:renderCentros,formas:renderFormas,receber:renderReceber,pagar:renderPagar,fluxo:initFluxo,conciliacao:initConciliacao,centrocusto:initCentroCusto,dre:initDRE,ia:initIA};
   if (map[id]) map[id]();
 }
 
@@ -2406,6 +2449,249 @@ function saveFbConfig() {
   updateSelects();
   renderBancos();
 })();
+
+// ══════════════════════════════════════════════════════════════════
+// ANÁLISE IA
+// ══════════════════════════════════════════════════════════════════
+function initIA(){
+  const today=new Date();
+  const di=new Date(today);di.setDate(di.getDate()-90);
+  const fmt=d=>d.toISOString().slice(0,10);
+  const diEl=document.getElementById('ia-di');
+  const dfEl=document.getElementById('ia-df');
+  if(diEl&&!diEl.value)diEl.value=fmt(di);
+  if(dfEl&&!dfEl.value)dfEl.value=fmt(today);
+  renderIA();
+}
+
+function setIAPeriodo(days,el){
+  document.querySelectorAll('.ia-period-btn').forEach(b=>b.classList.remove('active'));
+  if(el)el.classList.add('active');
+  const today=new Date();
+  const di=new Date(today);di.setDate(di.getDate()-days);
+  document.getElementById('ia-di').value=di.toISOString().slice(0,10);
+  document.getElementById('ia-df').value=today.toISOString().slice(0,10);
+  renderIA();
+}
+
+function renderIA(){
+  const diVal=document.getElementById('ia-di').value;
+  const dfVal=document.getElementById('ia-df').value;
+  const diK=diVal?diVal.replace(/-/g,''):'00000000';
+  const dfK=dfVal?dfVal.replace(/-/g,''):'99999999';
+  const today=new Date();
+  const todayK=today.toISOString().slice(0,10).replace(/-/g,'');
+  const next7K=new Date(today.getTime()+7*864e5).toISOString().slice(0,10).replace(/-/g,'');
+  const next30K=new Date(today.getTime()+30*864e5).toISOString().slice(0,10).replace(/-/g,'');
+
+  const allPag=db.get('pagar');
+  const allRec=db.get('receber');
+  const bancos=db.get('bancos');
+
+  const inPeriod=x=>{const k=dateKey(x.vencimento);return k>=diK&&k<=dfK;};
+  const pagP=allPag.filter(inPeriod);
+  const recP=allRec.filter(inPeriod);
+
+  const totalRec=recP.reduce((s,x)=>s+x.valor,0);
+  const totalPag=pagP.reduce((s,x)=>s+x.valor,0);
+  const recebido=recP.filter(x=>x.status==='recebido').reduce((s,x)=>s+x.valor,0);
+  const pago=pagP.filter(x=>x.status==='pago').reduce((s,x)=>s+x.valor,0);
+  const recPend=totalRec-recebido;
+  const pagPend=totalPag-pago;
+  const taxaRec=totalRec>0?recebido/totalRec*100:0;
+  const taxaPag=totalPag>0?pago/totalPag*100:0;
+
+  // Vencidos (global)
+  const recVenc=allRec.filter(x=>x.status!=='recebido'&&dateKey(x.vencimento)<todayK);
+  const pagVenc=allPag.filter(x=>x.status!=='pago'&&dateKey(x.vencimento)<todayK);
+  const totRecVenc=recVenc.reduce((s,x)=>s+x.valor,0);
+  const totPagVenc=pagVenc.reduce((s,x)=>s+x.valor,0);
+
+  // Próximos 30/7 dias
+  const pagProx30=allPag.filter(x=>x.status!=='pago'&&dateKey(x.vencimento)>=todayK&&dateKey(x.vencimento)<=next30K);
+  const recProx30=allRec.filter(x=>x.status!=='recebido'&&dateKey(x.vencimento)>=todayK&&dateKey(x.vencimento)<=next30K);
+  const totPagProx30=pagProx30.reduce((s,x)=>s+x.valor,0);
+  const totRecProx30=recProx30.reduce((s,x)=>s+x.valor,0);
+  const totPagProx7=allPag.filter(x=>x.status!=='pago'&&dateKey(x.vencimento)>=todayK&&dateKey(x.vencimento)<=next7K).reduce((s,x)=>s+x.valor,0);
+
+  // Saldo atual
+  const saldoAtual=bancos.filter(b=>b.ativo).reduce((s,b)=>s+saldoAtualBanco(b),0);
+  const saldoPrev=saldoAtual+totRecProx30-totPagProx30;
+
+  // Top fornecedores por despesa
+  const fornMap={};
+  pagP.forEach(p=>{const id=p.fornecedor||0;if(!fornMap[id])fornMap[id]={id,total:0,cnt:0};fornMap[id].total+=p.valor;fornMap[id].cnt++;});
+  const topForn=Object.values(fornMap).sort((a,b)=>b.total-a.total).slice(0,5);
+
+  // Top clientes por receita
+  const cliMap={};
+  recP.forEach(r=>{const id=r.fornecedor||0;if(!cliMap[id])cliMap[id]={id,total:0};cliMap[id].total+=r.valor;});
+  const topCli=Object.values(cliMap).sort((a,b)=>b.total-a.total).slice(0,5);
+
+  // Top centros de custo por despesa
+  const ccMap={};
+  pagP.forEach(p=>{const id=p.centro||'sem';if(!ccMap[id])ccMap[id]={id,total:0};ccMap[id].total+=p.valor;});
+  const topCC=Object.values(ccMap).sort((a,b)=>b.total-a.total).slice(0,5);
+
+  // Histórico mensal (6 meses)
+  const months6=[];
+  for(let i=5;i>=0;i--){
+    const d=new Date(today.getFullYear(),today.getMonth()-i,1);
+    const comp=String(d.getMonth()+1).padStart(2,'0')+'/'+d.getFullYear();
+    const rec=allRec.filter(x=>x.comp===comp).reduce((s,x)=>s+x.valor,0);
+    const pag=allPag.filter(x=>x.comp===comp).reduce((s,x)=>s+x.valor,0);
+    months6.push({comp,rec,pag,saldo:rec-pag});
+  }
+  const maxMes=Math.max(...months6.map(m=>Math.max(m.rec,m.pag)),1);
+
+  // ── INSIGHTS ──────────────────────────────────────────────────
+  const insights=[];
+
+  if(saldoAtual<0){
+    insights.push({t:'danger',i:'🚨',tit:'Saldo atual negativo',txt:`Saldo consolidado de ${R(saldoAtual)}. Ação imediata necessária para cobrir compromissos.`});
+  } else if(saldoAtual<totPagProx7){
+    insights.push({t:'danger',i:'⚠️',tit:'Caixa insuficiente para os próximos 7 dias',txt:`Caixa de ${R(saldoAtual)} vs ${R(totPagProx7)} em pagamentos nos próximos 7 dias. Risco de inadimplência imediata — priorize cobranças.`});
+  } else if(saldoAtual<totPagProx30){
+    insights.push({t:'warn',i:'⚠️',tit:'Saldo pode não cobrir os próximos 30 dias',txt:`${R(saldoAtual)} em caixa vs ${R(totPagProx30)} a pagar nos próximos 30 dias. Antecipe recebimentos ou negocie prazos com fornecedores.`});
+  } else {
+    insights.push({t:'ok',i:'✅',tit:'Fluxo de caixa saudável',txt:`Saldo de ${R(saldoAtual)} cobre os ${R(totPagProx30)} previstos para os próximos 30 dias. Folga de ${R(saldoAtual-totPagProx30)}.`});
+  }
+
+  if(totPagVenc>0) insights.push({t:'danger',i:'📤',tit:`${pagVenc.length} pagamento(s) vencido(s) — ${R(totPagVenc)}`,txt:'Regularize imediatamente para evitar juros, multas e protesto de títulos. Priorize os de maior valor.'});
+  if(totRecVenc>0) insights.push({t:'warn',i:'📥',tit:`${recVenc.length} recebimento(s) em atraso — ${R(totRecVenc)}`,txt:'Acione a cobrança desses clientes. Recebimentos atrasados comprometem seu fluxo de caixa projetado.'});
+
+  if(totalRec>0&&totalPag>0){
+    const ratio=totalRec/totalPag;
+    if(ratio<0.8) insights.push({t:'danger',i:'📉',tit:'Despesas superam receitas no período',txt:`Para cada R$ 1,00 recebido, você gasta R$ ${(1/ratio).toFixed(2)}. Revise custos ou busque aumentar receitas.`});
+    else if(ratio<1) insights.push({t:'warn',i:'📊',tit:'Receitas ligeiramente abaixo das despesas',txt:`Receitas cobrem ${(ratio*100).toFixed(0)}% das despesas. Monitore de perto o equilíbrio financeiro.`});
+    else insights.push({t:'ok',i:'📊',tit:`Receitas superam despesas em ${((ratio-1)*100).toFixed(0)}%`,txt:`Resultado positivo. Para cada R$ 1,00 gasto, você recebe R$ ${ratio.toFixed(2)}. Continue monitorando.`});
+  }
+
+  if(topForn.length>0&&totalPag>0){
+    const pct=(topForn[0].total/totalPag*100).toFixed(1);
+    const nome=nomeForn(topForn[0].id);
+    if(parseFloat(pct)>40) insights.push({t:'warn',i:'🏢',tit:`Alta dependência: ${nome} = ${pct}% das despesas`,txt:`Concentração elevada. Negocie melhores condições ou diversifique fornecedores para reduzir risco.`});
+    else {
+      const top3=topForn.slice(0,3).reduce((s,f)=>s+f.total,0);
+      insights.push({t:'blue',i:'🏢',tit:`Top 3 fornecedores = ${(top3/totalPag*100).toFixed(0)}% das despesas`,txt:`Boa diversificação de fornecedores. ${nome} lidera com ${pct}% das despesas — concentração dentro do aceitável.`});
+    }
+  }
+
+  if(saldoPrev<0) insights.push({t:'danger',i:'🔮',tit:'Saldo projetado negativo em 30 dias',txt:`Projeção: ${R(saldoPrev)} ao final de 30 dias. Considere antecipar recebimentos, negociar prazos ou buscar crédito.`});
+
+  if(taxaRec<70&&totalRec>0) insights.push({t:'warn',i:'📋',tit:`Taxa de recebimento baixa: ${taxaRec.toFixed(0)}%`,txt:`Apenas ${taxaRec.toFixed(0)}% do valor a receber no período foi efetivamente recebido. Reforce os processos de cobrança.`});
+
+  const melhorMes=months6.reduce((a,b)=>a.saldo>b.saldo?a:b,months6[0]);
+  const piorMes=months6.reduce((a,b)=>a.saldo<b.saldo?a:b,months6[0]);
+  if(melhorMes&&piorMes&&melhorMes.comp!==piorMes.comp){
+    insights.push({t:'blue',i:'📆',tit:`Melhor mês: ${melhorMes.comp} (${R(melhorMes.saldo)}) | Pior: ${piorMes.comp} (${R(piorMes.saldo)})`,txt:'Analise o que gerou essa variação para replicar os acertos e evitar os erros nos próximos períodos.'});
+  }
+
+  // ── HTML HELPERS ──────────────────────────────────────────────
+  const tblHdr=(...cols)=>`<table style="width:100%;font-size:12.5px;border-collapse:collapse"><thead><tr>${cols.map(c=>`<th style="text-align:${c.r?'right':'left'};padding:6px 10px;background:#f5f5fc;font-size:10.5px;font-weight:700;color:#888;text-transform:uppercase">${c.l}</th>`).join('')}</tr></thead><tbody>`;
+  const tblFoot=`</tbody></table>`;
+  const barRow=(val,max,cls)=>`<div class="ia-bar-wrap" style="margin:0"><div class="ia-bar ${cls}" style="width:${Math.min(val/max*100,100)}%"></div></div>`;
+
+  // Cards
+  const cards=`<div class="ia-grid">
+    <div class="ia-card ${saldoAtual>=0?'ia-ok':'ia-danger'}">
+      <div class="ia-card-hd">💰 Saldo atual (todos os bancos)</div>
+      <div class="ia-card-val ${saldoAtual<0?'saldo-neg':'saldo-pos'}">${R(saldoAtual)}</div>
+      <div class="ia-card-sub">Consolidado de todos os bancos ativos</div>
+    </div>
+    <div class="ia-card ia-blue">
+      <div class="ia-card-hd">📥 A Receber no período</div>
+      <div class="ia-card-val">${R(totalRec)}</div>
+      <div class="ia-card-sub">Recebido: ${R(recebido)} · Pendente: ${R(recPend)}</div>
+      <div class="ia-bar-wrap"><div class="ia-bar green" style="width:${Math.min(taxaRec,100)}%"></div></div>
+      <div style="font-size:11px;color:#888">${taxaRec.toFixed(0)}% recebido</div>
+    </div>
+    <div class="ia-card ${taxaPag<50&&totalPag>0?'ia-warn':'ia-blue'}">
+      <div class="ia-card-hd">📤 A Pagar no período</div>
+      <div class="ia-card-val">${R(totalPag)}</div>
+      <div class="ia-card-sub">Pago: ${R(pago)} · Pendente: ${R(pagPend)}</div>
+      <div class="ia-bar-wrap"><div class="ia-bar ${taxaPag>80?'green':taxaPag>50?'amber':'red'}" style="width:${Math.min(taxaPag,100)}%"></div></div>
+      <div style="font-size:11px;color:#888">${taxaPag.toFixed(0)}% pago</div>
+    </div>
+    <div class="ia-card ${saldoPrev>=0?'ia-ok':'ia-danger'}">
+      <div class="ia-card-hd">🔮 Saldo previsto (30 dias)</div>
+      <div class="ia-card-val ${saldoPrev<0?'saldo-neg':'saldo-pos'}">${R(saldoPrev)}</div>
+      <div class="ia-card-sub">+ Receber ${R(totRecProx30)} · − Pagar ${R(totPagProx30)}</div>
+    </div>
+    <div class="ia-card ${totPagVenc>0?'ia-danger':'ia-ok'}">
+      <div class="ia-card-hd">⏰ Pagamentos vencidos</div>
+      <div class="ia-card-val ${totPagVenc>0?'saldo-neg':''}">${R(totPagVenc)}</div>
+      <div class="ia-card-sub">${pagVenc.length} lançamento(s) em atraso</div>
+    </div>
+    <div class="ia-card ${totRecVenc>0?'ia-warn':'ia-ok'}">
+      <div class="ia-card-hd">📋 Recebimentos vencidos</div>
+      <div class="ia-card-val ${totRecVenc>0?'saldo-neg':''}">${R(totRecVenc)}</div>
+      <div class="ia-card-sub">${recVenc.length} lançamento(s) pendente(s)</div>
+    </div>
+  </div>`;
+
+  // Insights
+  const insHtml=insights.map(x=>`<div class="ia-insight ia-${x.t}"><div class="ia-icon">${x.i}</div><div class="ia-insight-body"><div class="ia-insight-title">${x.tit}</div><div class="ia-insight-text">${x.txt}</div></div></div>`).join('');
+
+  // Próximos 30 dias
+  const prox30sorted=pagProx30.sort((a,b)=>dateKey(a.vencimento)>dateKey(b.vencimento)?1:-1);
+  const proxHtml=prox30sorted.length
+    ?tblHdr({l:'Vencimento'},{l:'Fornecedor'},{l:'Doc'},{l:'Valor',r:1},{l:'Status'})+
+      prox30sorted.map(p=>{const urg=dateKey(p.vencimento)<=next7K;return`<tr style="border-top:1px solid #f0f0f8;${urg?'background:#fff8f0':''}"><td style="padding:8px;font-weight:700;${urg?'color:#e05c1a':''}">${p.vencimento}</td><td style="padding:8px">${nomeForn(p.fornecedor)}</td><td style="padding:8px;color:#888;font-size:11px">${p.doc||'—'}</td><td style="text-align:right;padding:8px;font-weight:700;color:#ef4444">${R(p.valor)}</td><td style="padding:8px">${statusBadge(calcStatus(p,'pagar'))}</td></tr>`;}).join('')+tblFoot
+    :'<div class="tbl-empty">Nenhum pagamento pendente nos próximos 30 dias. ✅</div>';
+
+  // Top fornecedores
+  const fornHtml=topForn.length
+    ?tblHdr({l:'Fornecedor'},{l:'Total',r:1},{l:'%',r:1},{l:'Participação'})+
+      topForn.map((f,i)=>{const pct=totalPag>0?f.total/totalPag*100:0;return`<tr style="border-top:1px solid #f0f0f8"><td style="padding:8px"><span style="font-weight:700">#${i+1}</span> ${nomeForn(f.id)}</td><td style="text-align:right;padding:8px;font-weight:700">${R(f.total)}</td><td style="text-align:right;padding:8px;color:#888">${pct.toFixed(1)}%</td><td style="padding:8px;min-width:80px">${barRow(pct,100,'red')}</td></tr>`;}).join('')+tblFoot
+    :'<div class="tbl-empty">Nenhuma despesa no período.</div>';
+
+  // Top clientes
+  const cliHtml=topCli.length
+    ?tblHdr({l:'Cliente / Pagador'},{l:'Total',r:1},{l:'%',r:1},{l:'Participação'})+
+      topCli.map((f,i)=>{const pct=totalRec>0?f.total/totalRec*100:0;return`<tr style="border-top:1px solid #f0f0f8"><td style="padding:8px"><span style="font-weight:700">#${i+1}</span> ${nomeForn(f.id)}</td><td style="text-align:right;padding:8px;font-weight:700">${R(f.total)}</td><td style="text-align:right;padding:8px;color:#888">${pct.toFixed(1)}%</td><td style="padding:8px;min-width:80px">${barRow(pct,100,'green')}</td></tr>`;}).join('')+tblFoot
+    :'<div class="tbl-empty">Nenhum recebimento no período.</div>';
+
+  // Top CC
+  const ccHtml=topCC.length
+    ?tblHdr({l:'Centro de Custo'},{l:'Total',r:1},{l:'%',r:1},{l:'Participação'})+
+      topCC.map((x,i)=>{const pct=totalPag>0?x.total/totalPag*100:0;const cc=db.get('centros').find(c=>c.id==x.id);const lbl=cc?cc.codigo+' - '+cc.descricao:'Sem centro';return`<tr style="border-top:1px solid #f0f0f8"><td style="padding:8px"><span style="font-weight:700">#${i+1}</span> ${lbl}</td><td style="text-align:right;padding:8px;font-weight:700">${R(x.total)}</td><td style="text-align:right;padding:8px;color:#888">${pct.toFixed(1)}%</td><td style="padding:8px;min-width:80px">${barRow(pct,100,'amber')}</td></tr>`;}).join('')+tblFoot
+    :'<div class="tbl-empty">Nenhuma despesa por centro de custo.</div>';
+
+  // Histórico mensal
+  const mesHtml=tblHdr({l:'Mês'},{l:'Receitas',r:1},{l:'Despesas',r:1},{l:'Resultado',r:1},{l:'Tendência'})+
+    months6.map(m=>{const sc=m.saldo>=0?'saldo-pos':'saldo-neg';return`<tr style="border-top:1px solid #f0f0f8"><td style="padding:8px;font-weight:700">${m.comp}</td><td style="text-align:right;padding:8px;color:#22c55e;font-weight:700">${R(m.rec)}</td><td style="text-align:right;padding:8px;color:#ef4444;font-weight:700">${R(m.pag)}</td><td style="text-align:right;padding:8px;font-weight:700" class="${sc}">${R(m.saldo)}</td><td style="padding:8px;min-width:100px"><div style="display:flex;flex-direction:column;gap:2px">${barRow(m.rec,maxMes,'green')}${barRow(m.pag,maxMes,'red')}</div></td></tr>`;}).join('')+tblFoot;
+
+  const wrap=(h)=>`<div style="background:#fff;border-radius:12px;border:1px solid #eeeef8;overflow:hidden;margin-bottom:4px">${h}</div>`;
+
+  document.getElementById('ia-result').innerHTML=`
+    ${cards}
+    <div class="ia-section-title">🧠 Diagnóstico Inteligente</div>
+    ${insHtml}
+    <div class="ia-section-title">⏳ Pagamentos nos Próximos 30 Dias</div>
+    ${wrap(proxHtml)}
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-top:20px">
+      <div>
+        <div class="ia-section-title">📤 Top Fornecedores (Despesas)</div>
+        ${wrap(fornHtml)}
+      </div>
+      <div>
+        <div class="ia-section-title">📥 Top Clientes (Receitas)</div>
+        ${wrap(cliHtml)}
+      </div>
+    </div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-top:20px">
+      <div>
+        <div class="ia-section-title">🏷️ Despesas por Centro de Custo</div>
+        ${wrap(ccHtml)}
+      </div>
+      <div>
+        <div class="ia-section-title">📆 Histórico Mensal (6 meses)</div>
+        ${wrap(mesHtml)}
+      </div>
+    </div>
+  `;
+}
 </script>
 <!-- ========== MODAL FIREBASE CONFIG ========== -->
 <div class="modal-overlay" id="modal-fb-config" onclick="if(event.target===this)closeFbConfig()">
