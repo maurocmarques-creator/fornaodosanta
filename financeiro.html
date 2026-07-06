@@ -1326,7 +1326,7 @@ function statusBadge(st){
 function nomeForn(id){return db.get('fornecedores').find(x=>x.id==id)?.nome||'—';}
 function nomeBanco(id){const b=db.get('bancos').find(x=>x.id==id);return b?b.nome:'—';}
 function nomeBancoShort(id){return nomeBanco(id).split('—')[0].trim();}
-function nomeCentro(id){const c=db.get('centros').find(x=>x.id==id);return c?c.codigo:'—';}
+function nomeCentro(id){const c=db.get('centros').find(x=>x.id==id);return c?c.codigo+' - '+c.descricao:'—';}
 function nomeCentroFull(id){const c=db.get('centros').find(x=>x.id==id);return c?c.codigo+' — '+c.descricao:'—';}
 
 function kpiLanc(list,tipo){
