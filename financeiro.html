@@ -2655,9 +2655,14 @@ INSTRUÇÕES:
 - Mantenha respostas concisas mas completas`;
 
   const proxyUrl=localStorage.getItem('ia_proxy_url')||'';
-  const apiUrl=proxyUrl?proxyUrl+'/v1/messages':'https://api.anthropic.com/v1/messages';
-  const headers={'Content-Type':'application/json','x-api-key':key,'anthropic-version':'2023-06-01'};
-  if(!proxyUrl)headers['anthropic-dangerous-allow-browser']='true';
+  let apiUrl,headers;
+  if(proxyUrl){
+    apiUrl=proxyUrl+'/v1/messages';
+    headers={'Content-Type':'application/json','x-api-key':key,'anthropic-version':'2023-06-01'};
+  }else{
+    apiUrl='https://corsproxy.io/?url='+encodeURIComponent('https://api.anthropic.com/v1/messages');
+    headers={'Content-Type':'application/json','x-api-key':key,'anthropic-version':'2023-06-01','anthropic-dangerous-allow-browser':'true'};
+  }
   const resp=await fetch(apiUrl,{
     method:'POST',
     headers,
@@ -2721,9 +2726,7 @@ async function iaEnviar(){
     iaAdicionarMsg('assistant',resposta);
   }catch(e){
     if(typing)typing.remove();
-    const isCors=e.message==='Failed to fetch'||e.message.includes('NetworkError');
-    const hint=isCors?'\n\n⚠️ Erro de CORS — a API da Anthropic bloqueia chamadas diretas do navegador. Configure um Proxy URL em ⚙️ API Key. Veja as instruções em: https://developers.cloudflare.com/workers/':'';
-    iaAdicionarMsg('assistant','❌ Erro de conexão: '+e.message+hint);
+    iaAdicionarMsg('assistant','❌ Erro ao conectar: '+e.message+'\n\nVerifique se sua API Key está correta em ⚙️ API Key.');
   }
 }
 
