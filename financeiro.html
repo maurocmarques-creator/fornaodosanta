@@ -593,8 +593,10 @@ tbody tr:hover td{background:#fafafe}
             </div>
           </div>
           <div id="ia-key-config" style="display:none" class="ia-chat-key">
-            <span class="ia-chat-key-lbl">🔑 Anthropic API Key:</span>
-            <input type="password" id="ia-api-key" placeholder="sk-ant-..." onchange="iaSalvarKey()">
+            <span class="ia-chat-key-lbl">🔑 API Key:</span>
+            <input type="password" id="ia-api-key" placeholder="sk-ant-..." style="flex:2">
+            <span class="ia-chat-key-lbl" style="margin-left:8px">🔗 Proxy URL:</span>
+            <input type="text" id="ia-proxy-url" placeholder="https://seu-worker.workers.dev" style="flex:2">
             <button class="btn btn-primary btn-sm" onclick="iaSalvarKey();iaMostrarConfig()">Salvar</button>
           </div>
           <div class="ia-chat-sugs">
@@ -2548,13 +2550,16 @@ function iaMostrarConfig(){
   const el=document.getElementById('ia-key-config');
   if(!el)return;
   el.style.display=el.style.display==='none'?'':'none';
-  const k=localStorage.getItem('ia_claude_key')||'';
-  document.getElementById('ia-api-key').value=k;
+  document.getElementById('ia-api-key').value=localStorage.getItem('ia_claude_key')||'';
+  document.getElementById('ia-proxy-url').value=localStorage.getItem('ia_proxy_url')||'';
 }
 
 function iaSalvarKey(){
   const v=document.getElementById('ia-api-key').value.trim();
   if(v)localStorage.setItem('ia_claude_key',v);
+  const p=document.getElementById('ia-proxy-url').value.trim();
+  if(p)localStorage.setItem('ia_proxy_url',p.replace(/\/$/,''));
+  else localStorage.removeItem('ia_proxy_url');
 }
 
 function iaUsarSug(el){
@@ -2649,14 +2654,13 @@ INSTRUÇÕES:
 - Formate valores sempre como R$ X.XXX,XX
 - Mantenha respostas concisas mas completas`;
 
-  const resp=await fetch('https://api.anthropic.com/v1/messages',{
+  const proxyUrl=localStorage.getItem('ia_proxy_url')||'';
+  const apiUrl=proxyUrl?proxyUrl+'/v1/messages':'https://api.anthropic.com/v1/messages';
+  const headers={'Content-Type':'application/json','x-api-key':key,'anthropic-version':'2023-06-01'};
+  if(!proxyUrl)headers['anthropic-dangerous-allow-browser']='true';
+  const resp=await fetch(apiUrl,{
     method:'POST',
-    headers:{
-      'Content-Type':'application/json',
-      'x-api-key':key,
-      'anthropic-version':'2023-06-01',
-      'anthropic-dangerous-allow-browser':'true'
-    },
+    headers,
     body:JSON.stringify({
       model:'claude-haiku-4-5-20251001',
       max_tokens:1024,
@@ -2717,7 +2721,9 @@ async function iaEnviar(){
     iaAdicionarMsg('assistant',resposta);
   }catch(e){
     if(typing)typing.remove();
-    iaAdicionarMsg('assistant','❌ Erro de conexão: '+e.message);
+    const isCors=e.message==='Failed to fetch'||e.message.includes('NetworkError');
+    const hint=isCors?'\n\n⚠️ Erro de CORS — a API da Anthropic bloqueia chamadas diretas do navegador. Configure um Proxy URL em ⚙️ API Key. Veja as instruções em: https://developers.cloudflare.com/workers/':'';
+    iaAdicionarMsg('assistant','❌ Erro de conexão: '+e.message+hint);
   }
 }
 
