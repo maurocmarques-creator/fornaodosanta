@@ -2719,17 +2719,18 @@ function renderFechamentoCaixa() {
       +'</tr>';
   }).join('') || '<tr><td colspan="3" style="color:#aaa;text-align:center;padding:12px">Nenhum pedido marcado como recebido nesta data</td></tr>';
 
-  // Conferência: (abertura + total marcados) vs total de vendas
-  var totalEmCaixa = totalAbertura + totalFormas;
-  var diferenca    = totalEmCaixa - totalVendas;
-  var fechado      = Math.abs(diferenca) < 0.005; // tolerância de centavos
-  var corStatus    = fechado ? '#1a8a3c' : '#c0392b';
-  var bgStatus     = fechado ? '#edfaf1' : '#fdf0ef';
-  var bdStatus     = fechado ? '#b7e8c8' : '#f5c0bc';
-  var msgStatus    = fechado
-    ? '✅ Caixa fechado! O total recebido confere com as vendas do dia.'
-    : '⚠️ Caixa com diferença de R$ '+fmtValor(Math.abs(diferenca))
-      +' — '+(diferenca > 0 ? 'sobra no caixa.' : 'falta no caixa.');
+  // Conferência: Valor em caixa (marcados) - Fechamento da noite (todos) - Abertura = saldo
+  var valorEmCaixa      = totalMarcados;          // pedidos marcados como recebido
+  var fechamentNoite    = totalVendas;             // soma de todos os pedidos do dia
+  var saldoFinal        = valorEmCaixa - fechamentNoite - totalAbertura;
+  var fechado           = Math.abs(saldoFinal) < 0.005;
+  var corStatus         = fechado ? '#1a8a3c' : '#c0392b';
+  var bgStatus          = fechado ? '#edfaf1' : '#fdf0ef';
+  var bdStatus          = fechado ? '#b7e8c8' : '#f5c0bc';
+  var msgStatus         = fechado
+    ? '✅ Caixa fechado! O saldo final zerou corretamente.'
+    : '⚠️ Caixa não fechou — saldo de R$ '+fmtValor(Math.abs(saldoFinal))
+      +' '+(saldoFinal > 0 ? '(sobra no caixa).' : '(falta no caixa).');
 
   var tdS = 'style="padding:7px 12px;border-bottom:1px solid #f0f0f0"';
   var tdR = 'style="padding:7px 12px;text-align:right;border-bottom:1px solid #f0f0f0"';
@@ -2781,12 +2782,24 @@ function renderFechamentoCaixa() {
 
     // ── Conferência ──
     +'<div style="border:1.5px solid '+bdStatus+';border-radius:10px;padding:16px 20px;background:'+bgStatus+'">'
-    +'<p style="margin:0 0 8px;font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:.8px;color:'+corStatus+'">🔒 Conferência de Caixa</p>'
+    +'<p style="margin:0 0 12px;font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:.8px;color:'+corStatus+'">🔒 Conferência de Caixa</p>'
     +'<table style="width:100%;border-collapse:collapse;font-size:13px;color:#333">'
-    +'<tr><td style="padding:4px 0">Abertura de caixa</td><td style="text-align:right;padding:4px 0">R$ '+fmtValor(totalAbertura)+'</td></tr>'
-    +'<tr><td style="padding:4px 0">+ Recebimentos marcados</td><td style="text-align:right;padding:4px 0">R$ '+fmtValor(totalFormas)+'</td></tr>'
-    +'<tr style="border-top:1px solid '+bdStatus+'"><td style="padding:6px 0;font-weight:700">= Total em caixa</td><td style="text-align:right;padding:6px 0;font-weight:700">R$ '+fmtValor(totalEmCaixa)+'</td></tr>'
-    +'<tr><td style="padding:4px 0;color:#666">Total de vendas</td><td style="text-align:right;padding:4px 0;color:#666">R$ '+fmtValor(totalVendas)+'</td></tr>'
+    +'<tr>'
+    +'<td style="padding:5px 0">Valor em caixa <span style="font-size:11px;color:#888">(pedidos marcados como recebido)</span></td>'
+    +'<td style="text-align:right;padding:5px 0">R$ '+fmtValor(valorEmCaixa)+'</td>'
+    +'</tr>'
+    +'<tr>'
+    +'<td style="padding:5px 0">− Fechamento da noite <span style="font-size:11px;color:#888">(soma de todos os pedidos)</span></td>'
+    +'<td style="text-align:right;padding:5px 0">− R$ '+fmtValor(fechamentNoite)+'</td>'
+    +'</tr>'
+    +'<tr>'
+    +'<td style="padding:5px 0">− Abertura do caixa</td>'
+    +'<td style="text-align:right;padding:5px 0">− R$ '+fmtValor(totalAbertura)+'</td>'
+    +'</tr>'
+    +'<tr style="border-top:2px solid '+bdStatus+'">'
+    +'<td style="padding:8px 0;font-weight:700;font-size:14px">= Saldo final</td>'
+    +'<td style="text-align:right;padding:8px 0;font-weight:700;font-size:14px;color:'+corStatus+'">R$ '+fmtValor(saldoFinal)+'</td>'
+    +'</tr>'
     +'</table>'
     +'<p style="margin:14px 0 0;font-size:14px;font-weight:700;color:'+corStatus+'">'+msgStatus+'</p>'
     +'</div>'
