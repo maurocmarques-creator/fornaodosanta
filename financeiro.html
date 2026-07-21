@@ -2506,8 +2506,11 @@ function parseBRVal(v){ return parseFloat((v||'').replace(/\./g,'').replace(',',
 function calcTrocoPedido(){
   var venda  = parseBRVal(document.getElementById('pedido-valor-venda').value);
   var trocop = parseBRVal(document.getElementById('pedido-troco-para').value);
-  var troco  = (venda > 0 && trocop > 0) ? venda - trocop : 0;
-  document.getElementById('pedido-troco').value = troco > 0 ? fmtBR(troco) : '';
+  if (venda > 0 && trocop > 0) {
+    document.getElementById('pedido-troco').value = fmtValor(trocop - venda);
+  } else {
+    document.getElementById('pedido-troco').value = '';
+  }
 }
 
 function openPedido(id) {
@@ -2516,7 +2519,8 @@ function openPedido(id) {
   selRec.innerHTML = '<option value="">— Selecione —</option>' +
     formas.map(function(f){return '<option value="'+f.id+'">'+f.nome+'</option>';}).join('');
 
-  var forn   = db.get('fornecedores').filter(function(f){return f.ativo!=0 && f.tipo==='Motoboy';});
+  var ccMotoIds = db.get('centros').filter(function(c){return c.descricao && c.descricao.toLowerCase().indexOf('motoboy')>=0;}).map(function(c){return c.id;});
+  var forn   = db.get('fornecedores').filter(function(f){return f.ativo!=0 && (f.tipo==='Motoboy' || (f.centro && ccMotoIds.indexOf(Number(f.centro))>=0));});
   var selEnt = document.getElementById('pedido-entregador');
   selEnt.innerHTML = '<option value="">— Selecione —</option>' +
     forn.map(function(f){return '<option value="'+f.id+'">'+f.nome+'</option>';}).join('');
@@ -2528,12 +2532,12 @@ function openPedido(id) {
     document.getElementById('modal-pedido-title').textContent = '🛵 Editar Pedido';
     document.getElementById('pedido-data').value              = p.data || '';
     document.getElementById('pedido-numero').value            = p.numero || '';
-    document.getElementById('pedido-valor-venda').value       = p.valorVenda   ? fmtBR(p.valorVenda)   : '';
+    document.getElementById('pedido-valor-venda').value       = p.valorVenda   ? fmtValor(p.valorVenda)   : '';
     document.getElementById('pedido-recebimento').value       = p.recebimento  || '';
-    document.getElementById('pedido-troco-para').value        = p.trocoPara    ? fmtBR(p.trocoPara)    : '';
-    document.getElementById('pedido-troco').value             = p.troco        ? fmtBR(p.troco)        : '';
+    document.getElementById('pedido-troco-para').value        = p.trocoPara    ? fmtValor(p.trocoPara)    : '';
+    document.getElementById('pedido-troco').value             = p.troco        ? fmtValor(p.troco)        : '';
     document.getElementById('pedido-entregador').value        = p.entregador   || '';
-    document.getElementById('pedido-valor-entrega').value     = p.valorEntrega ? fmtBR(p.valorEntrega) : '';
+    document.getElementById('pedido-valor-entrega').value     = p.valorEntrega ? fmtValor(p.valorEntrega) : '';
     document.getElementById('pedido-status').value            = p.status || 'Entrega';
   } else {
     document.getElementById('pedido-edit-id').value           = '';
@@ -2609,12 +2613,12 @@ function renderPedidos() {
     ? list.map(function(p){return '<tr>'
         +'<td class="nowrap">'+fmtD(p.data)+'</td>'
         +'<td class="fw7">#'+p.numero+'</td>'
-        +'<td class="nowrap">'+fmtMoeda(p.valorVenda)+'</td>'
+        +'<td class="nowrap">'+fmtValor(p.valorVenda)+'</td>'
         +'<td>'+nomeForm(p.recebimento)+'</td>'
-        +'<td class="nowrap">'+(p.trocoPara ? fmtMoeda(p.trocoPara) : '—')+'</td>'
-        +'<td class="nowrap">'+(p.troco     ? fmtMoeda(p.troco)     : '—')+'</td>'
+        +'<td class="nowrap">'+(p.trocoPara ? fmtValor(p.trocoPara) : '—')+'</td>'
+        +'<td class="nowrap">'+(p.troco     ? fmtValor(p.troco)     : '—')+'</td>'
         +'<td>'+nomeEnt(p.entregador)+'</td>'
-        +'<td class="nowrap">'+(p.valorEntrega ? fmtMoeda(p.valorEntrega) : '—')+'</td>'
+        +'<td class="nowrap">'+(p.valorEntrega ? fmtValor(p.valorEntrega) : '—')+'</td>'
         +'<td>'+stBadge(p.status)+'</td>'
         +'<td class="nowrap">'
           +'<button class="btn btn-ghost btn-sm" onclick="openPedido('+p.id+')">✏️</button> '
