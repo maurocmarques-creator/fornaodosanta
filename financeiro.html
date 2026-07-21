@@ -271,8 +271,9 @@ tbody tr:hover td{background:#fafafe}
     <div class="sb-item" onclick="nav('dre',this)"><span class="ic">📋</span> DRE</div>
   </div>
   <div class="sb-group">
-    <div class="sb-group-label">Pedidos</div>
-    <div class="sb-item" id="nav-pedidos" onclick="nav('pedidos',this)"><span class="ic">🛵</span> Lançamento</div>
+    <div class="sb-group-label">Movimento caixa</div>
+    <div class="sb-item" id="nav-pedidos" onclick="nav('pedidos',this)"><span class="ic">🛵</span> Lançamento de pedidos</div>
+    <div class="sb-item" id="nav-aberturacaixa" onclick="nav('aberturacaixa',this)"><span class="ic">💰</span> Abertura de caixa</div>
   </div>
 </nav>
 
@@ -575,6 +576,21 @@ tbody tr:hover td{background:#fafafe}
         </div>
       </div>
     </div>
+
+    <!-- ABERTURA DE CAIXA -->
+    <div class="screen" id="s-aberturacaixa">
+      <div class="panel">
+        <div class="panel-hd"><h2>Aberturas de caixa</h2></div>
+        <div class="panel-body nop tbl-wrap">
+          <table>
+            <thead><tr>
+              <th>Data</th><th>Valor de Moeda (R$)</th><th>Valor de Cédula (R$)</th><th>Total (R$)</th><th style="width:90px"></th>
+            </tr></thead>
+            <tbody id="tbl-aberturacaixa"></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
   </div><!-- /content -->
 </div><!-- /main -->
 
@@ -869,8 +885,8 @@ try { const c = localStorage.getItem('__fb_cfg'); if(c) FIREBASE_CONFIG = JSON.p
 // ============================================================
 // STORAGE — cache em memória + Firebase ou localStorage
 // ============================================================
-const K = { bancos:'fin_bancos', fornecedores:'fin_forn', centros:'fin_cc', receber:'fin_receber', pagar:'fin_pagar', formas:'fin_formas', pedidos:'fin_pedidos' };
-let _cache = { bancos:[], fornecedores:[], centros:[], receber:[], pagar:[], formas:[], pedidos:[] };
+const K = { bancos:'fin_bancos', fornecedores:'fin_forn', centros:'fin_cc', receber:'fin_receber', pagar:'fin_pagar', formas:'fin_formas', pedidos:'fin_pedidos', aberturacaixa:'fin_aberturacaixa' };
+let _cache = { bancos:[], fornecedores:[], centros:[], receber:[], pagar:[], formas:[], pedidos:[], aberturacaixa:[] };
 let _fsdb = null; // Firestore instance
 let _fbReady = false;
 
@@ -1140,7 +1156,8 @@ const TITLES = {
   conciliacao:  ['Conciliação Bancária',     'Relatórios › Conciliação',        '', ''],
   centrocusto:  ['Por Centro de Custo',      'Relatórios › Centro de Custo',    '', ''],
   dre:          ['DRE',                      'Resultado › Demonstração do Resultado', '', ''],
-  pedidos:      ['Lançamento de Pedido',       'Pedidos › Lançamento',                '+ Novo Pedido',    '__pedidos']
+  pedidos:      ['Lançamento de Pedidos',    'Movimento caixa › Lançamento de pedidos', '+ Novo Pedido',    '__pedidos'],
+  aberturacaixa:['Abertura de Caixa',       'Movimento caixa › Abertura de caixa',     '+ Nova Abertura',  '__aberturacaixa']
 };
 let _cur = 'bancos';
 
@@ -1164,11 +1181,12 @@ function topbarAction() {
   if (t[3]==='__receber') openLancamento('receber');
   else if (t[3]==='__pagar') openLancamento('pagar');
   else if (t[3]==='__pedidos') openPedido();
+  else if (t[3]==='__aberturacaixa') openAberturaCaixa();
   else openModalNew(t[3]);
 }
 
 function renderScreen(id) {
-  const map = {bancos:renderBancos,fornecedores:renderFornecedores,centros:renderCentros,formas:renderFormas,receber:renderReceber,pagar:renderPagar,fluxo:initFluxo,conciliacao:initConciliacao,centrocusto:initCentroCusto,dre:initDRE,pedidos:renderPedidos};
+  const map = {bancos:renderBancos,fornecedores:renderFornecedores,centros:renderCentros,formas:renderFormas,receber:renderReceber,pagar:renderPagar,fluxo:initFluxo,conciliacao:initConciliacao,centrocusto:initCentroCusto,dre:initDRE,pedidos:renderPedidos,aberturacaixa:renderAberturaCaixa};
   if (map[id]) map[id]();
 }
 
@@ -2628,6 +2646,81 @@ function renderPedidos() {
     : '<tr><td colspan="10" class="tbl-empty">Nenhum pedido registrado.</td></tr>';
 }
 
+
+// ============================================================
+// ABERTURA DE CAIXA
+// ============================================================
+function calcTotalAbertura(){
+  var moeda  = parseBRVal(document.getElementById('abertura-moeda').value);
+  var cedula = parseBRVal(document.getElementById('abertura-cedula').value);
+  document.getElementById('abertura-total').value = fmtValor(moeda + cedula);
+}
+
+function openAberturaCaixa(id) {
+  if (id) {
+    var a = db.get('aberturacaixa').find(function(x){return x.id===id;});
+    if (!a) return;
+    document.getElementById('abertura-edit-id').value = id;
+    document.getElementById('modal-abertura-title').textContent = '💰 Editar Abertura de Caixa';
+    document.getElementById('abertura-data').value   = a.data || '';
+    document.getElementById('abertura-moeda').value  = a.moeda  ? fmtValor(a.moeda)  : '';
+    document.getElementById('abertura-cedula').value = a.cedula ? fmtValor(a.cedula) : '';
+    document.getElementById('abertura-total').value  = a.total  ? fmtValor(a.total)  : '';
+  } else {
+    document.getElementById('abertura-edit-id').value = '';
+    document.getElementById('modal-abertura-title').textContent = '💰 Nova Abertura de Caixa';
+    document.getElementById('abertura-data').value   = new Date().toISOString().slice(0,10);
+    document.getElementById('abertura-moeda').value  = '';
+    document.getElementById('abertura-cedula').value = '';
+    document.getElementById('abertura-total').value  = '';
+  }
+  openModal('modal-aberturacaixa');
+}
+
+function salvarAberturaCaixa() {
+  var data = document.getElementById('abertura-data').value;
+  if (!data) { alert('Informe a data.'); return; }
+  var moeda  = parseBRVal(document.getElementById('abertura-moeda').value);
+  var cedula = parseBRVal(document.getElementById('abertura-cedula').value);
+  var total  = moeda + cedula;
+  var editId = document.getElementById('abertura-edit-id').value;
+  var list   = db.get('aberturacaixa').slice();
+  var rec    = { id: editId ? Number(editId) : db.nextId(list), data: data, moeda: moeda, cedula: cedula, total: total };
+  if (editId) {
+    var idx = list.findIndex(function(x){return x.id==editId;});
+    if (idx>=0) list[idx] = rec; else list.push(rec);
+  } else {
+    list.push(rec);
+  }
+  db.set('aberturacaixa', list);
+  closeModal('modal-aberturacaixa');
+  renderAberturaCaixa();
+}
+
+function excluirAberturaCaixa(id) {
+  if (!confirm('Excluir esta abertura de caixa?')) return;
+  db.set('aberturacaixa', db.get('aberturacaixa').filter(function(x){return x.id!==id;}));
+  renderAberturaCaixa();
+}
+
+function renderAberturaCaixa() {
+  var list = db.get('aberturacaixa').slice().sort(function(a,b){return b.data.localeCompare(a.data);});
+  var fmtD = function(d){ return d ? d.split('-').reverse().join('/') : '—'; };
+  document.getElementById('tbl-aberturacaixa').innerHTML = list.length
+    ? list.map(function(a){return '<tr>'
+        +'<td class="nowrap">'+fmtD(a.data)+'</td>'
+        +'<td class="nowrap">'+fmtValor(a.moeda||0)+'</td>'
+        +'<td class="nowrap">'+fmtValor(a.cedula||0)+'</td>'
+        +'<td class="nowrap fw7">'+fmtValor(a.total||0)+'</td>'
+        +'<td class="nowrap">'
+          +'<button class="btn btn-ghost btn-sm" onclick="openAberturaCaixa('+a.id+')">✏️</button> '
+          +'<button class="btn btn-danger btn-sm" onclick="excluirAberturaCaixa('+a.id+')">🗑</button>'
+        +'</td>'
+      +'</tr>';}).join('')
+    : '<tr><td colspan="5" class="tbl-empty">Nenhuma abertura registrada.</td></tr>';
+}
+
+
 </script>
 <!-- ========== MODAL FIREBASE CONFIG ========== -->
 <div class="modal-overlay" id="modal-fb-config" onclick="if(event.target===this)closeFbConfig()">
@@ -2648,6 +2741,30 @@ function renderPedidos() {
   </div>
 </div>
 
+
+<!-- ABERTURA DE CAIXA -->
+<div class="modal-overlay" id="modal-aberturacaixa">
+  <div class="modal" style="width:460px">
+    <div class="modal-hd"><h3 id="modal-abertura-title">💰 Nova Abertura de Caixa</h3><button class="modal-close" onclick="closeModal('modal-aberturacaixa')">✕</button></div>
+    <div class="modal-body">
+      <input type="hidden" id="abertura-edit-id">
+      <div class="form-row cols1">
+        <div class="fg"><label class="field-req">Data</label><input id="abertura-data" type="date"></div>
+      </div>
+      <div class="form-row cols2">
+        <div class="fg"><label>Valor de Moeda (R$)</label><input id="abertura-moeda" type="text" placeholder="0,00" oninput="maskValor(this);calcTotalAbertura()"></div>
+        <div class="fg"><label>Valor de Cédula (R$)</label><input id="abertura-cedula" type="text" placeholder="0,00" oninput="maskValor(this);calcTotalAbertura()"></div>
+      </div>
+      <div class="form-row cols1">
+        <div class="fg"><label>Total (R$)</label><input id="abertura-total" type="text" readonly placeholder="0,00" style="background:#f4f4f8;font-weight:700"></div>
+      </div>
+    </div>
+    <div class="modal-ft">
+      <button class="btn btn-ghost" onclick="closeModal('modal-aberturacaixa')">Cancelar</button>
+      <button class="btn btn-primary" onclick="salvarAberturaCaixa()">💾 Salvar</button>
+    </div>
+  </div>
+</div>
 
 <!-- PEDIDO / LANÇAMENTO ENTREGA -->
 <div class="modal-overlay" id="modal-pedido">
