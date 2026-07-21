@@ -274,6 +274,7 @@ tbody tr:hover td{background:#fafafe}
     <div class="sb-group-label">Movimento caixa</div>
     <div class="sb-item" id="nav-pedidos" onclick="nav('pedidos',this)"><span class="ic">🛵</span> Lançamento de pedidos</div>
     <div class="sb-item" id="nav-aberturacaixa" onclick="nav('aberturacaixa',this)"><span class="ic">💰</span> Abertura de caixa</div>
+    <div class="sb-item" id="nav-fechamentocaixa" onclick="nav('fechamentocaixa',this)"><span class="ic">🔒</span> Fechamento de caixa</div>
   </div>
 </nav>
 
@@ -568,7 +569,7 @@ tbody tr:hover td{background:#fafafe}
         <div class="panel-body nop tbl-wrap">
           <table>
             <thead><tr>
-              <th>Data</th><th>Pedido Nº</th><th>Valor Venda</th><th>Recebimento</th>
+              <th style="width:36px;text-align:center">✓</th><th>Data</th><th>Pedido Nº</th><th>Valor Venda</th><th>Recebimento</th>
               <th>Troco Para</th><th>Troco</th><th>Entregador</th><th>Vl. Entrega</th><th>Status</th><th style="width:90px"></th>
             </tr></thead>
             <tbody id="tbl-pedidos"></tbody>
@@ -588,6 +589,22 @@ tbody tr:hover td{background:#fafafe}
             </tr></thead>
             <tbody id="tbl-aberturacaixa"></tbody>
           </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- FECHAMENTO DE CAIXA -->
+    <div class="screen" id="s-fechamentocaixa">
+      <div class="panel">
+        <div class="panel-hd" style="gap:12px;flex-wrap:wrap">
+          <h2>Fechamento de Caixa</h2>
+          <div style="display:flex;align-items:center;gap:8px;margin-left:auto">
+            <label style="font-size:13px;font-weight:600;color:#555">Data:</label>
+            <input type="date" id="fechamento-data" onchange="renderFechamentoCaixa()" style="border:1.5px solid #ddd;border-radius:8px;padding:6px 10px;font-size:13px">
+          </div>
+        </div>
+        <div class="panel-body" id="fechamento-corpo">
+          <p style="color:#aaa;text-align:center;padding:32px">Selecione uma data para exibir o fechamento.</p>
         </div>
       </div>
     </div>
@@ -1157,7 +1174,8 @@ const TITLES = {
   centrocusto:  ['Por Centro de Custo',      'Relatórios › Centro de Custo',    '', ''],
   dre:          ['DRE',                      'Resultado › Demonstração do Resultado', '', ''],
   pedidos:      ['Lançamento de Pedidos',    'Movimento caixa › Lançamento de pedidos', '+ Novo Pedido',    '__pedidos'],
-  aberturacaixa:['Abertura de Caixa',       'Movimento caixa › Abertura de caixa',     '+ Nova Abertura',  '__aberturacaixa']
+  aberturacaixa:['Abertura de Caixa',       'Movimento caixa › Abertura de caixa',     '+ Nova Abertura',  '__aberturacaixa'],
+  fechamentocaixa:['Fechamento de Caixa',   'Movimento caixa › Fechamento de caixa',   '',                 '']
 };
 let _cur = 'bancos';
 
@@ -1186,7 +1204,7 @@ function topbarAction() {
 }
 
 function renderScreen(id) {
-  const map = {bancos:renderBancos,fornecedores:renderFornecedores,centros:renderCentros,formas:renderFormas,receber:renderReceber,pagar:renderPagar,fluxo:initFluxo,conciliacao:initConciliacao,centrocusto:initCentroCusto,dre:initDRE,pedidos:renderPedidos,aberturacaixa:renderAberturaCaixa};
+  const map = {bancos:renderBancos,fornecedores:renderFornecedores,centros:renderCentros,formas:renderFormas,receber:renderReceber,pagar:renderPagar,fluxo:initFluxo,conciliacao:initConciliacao,centrocusto:initCentroCusto,dre:initDRE,pedidos:renderPedidos,aberturacaixa:renderAberturaCaixa,fechamentocaixa:renderFechamentoCaixa};
   if (map[id]) map[id]();
 }
 
@@ -2629,6 +2647,7 @@ function renderPedidos() {
 
   document.getElementById('tbl-pedidos').innerHTML = list.length
     ? list.map(function(p){return '<tr>'
+        +'<td style="text-align:center"><input type="checkbox"'+(p.recebido?' checked':'')+' onchange="toggleRecebidoPedido('+p.id+',this.checked)" title="Marcar como recebido fisicamente"></td>'
         +'<td class="nowrap">'+fmtD(p.data)+'</td>'
         +'<td class="fw7">#'+p.numero+'</td>'
         +'<td class="nowrap">'+fmtValor(p.valorVenda)+'</td>'
@@ -2643,9 +2662,92 @@ function renderPedidos() {
           +'<button class="btn btn-danger btn-sm" onclick="excluirPedido('+p.id+')">🗑</button>'
         +'</td>'
       +'</tr>';}).join('')
-    : '<tr><td colspan="10" class="tbl-empty">Nenhum pedido registrado.</td></tr>';
+    : '<tr><td colspan="11" class="tbl-empty">Nenhum pedido registrado.</td></tr>';
 }
 
+
+// ============================================================
+// PEDIDOS — TOGGLE RECEBIDO
+// ============================================================
+function toggleRecebidoPedido(id, checked) {
+  var list = db.get('pedidos').slice();
+  var p    = list.find(function(x){ return x.id === id; });
+  if (p) { p.recebido = checked ? 1 : 0; db.set('pedidos', list); }
+}
+
+// ============================================================
+// FECHAMENTO DE CAIXA
+// ============================================================
+function renderFechamentoCaixa() {
+  var inp  = document.getElementById('fechamento-data');
+  if (!inp) return;
+  if (!inp.value) { inp.value = new Date().toISOString().slice(0,10); }
+  var data = inp.value;
+  var fmtD = data.split('-').reverse().join('/');
+
+  // Abertura do dia
+  var aberturas = db.get('aberturacaixa').filter(function(a){ return a.data === data; });
+  var moeda  = aberturas.reduce(function(s,a){ return s+(a.moeda||0); }, 0);
+  var cedula = aberturas.reduce(function(s,a){ return s+(a.cedula||0); }, 0);
+  var totalAbertura = moeda + cedula;
+
+  // Pedidos do dia
+  var pedidos = db.get('pedidos').filter(function(p){ return p.data === data; });
+  var qtdPedidos   = pedidos.length;
+  var totalVendas  = pedidos.reduce(function(s,p){ return s+(p.valorVenda||0); }, 0);
+
+  // Totais por forma de recebimento
+  var formas     = db.get('formas');
+  var nomeForma  = function(id){ var f=formas.find(function(x){return x.id==id;}); return f?f.nome:(id||'—'); };
+  var grupos = {};
+  pedidos.forEach(function(p){
+    var k = p.recebimento || '—';
+    if (!grupos[k]) grupos[k] = { nome: nomeForma(p.recebimento), total: 0, qtd: 0 };
+    grupos[k].total += (p.valorVenda||0);
+    grupos[k].qtd   += 1;
+  });
+
+  var linhasFormas = Object.values(grupos).map(function(g){
+    return '<tr><td>'+g.nome+'</td><td style="text-align:center">'+g.qtd+'</td><td style="text-align:right">R$ '+fmtValor(g.total)+'</td></tr>';
+  }).join('') || '<tr><td colspan="3" style="color:#aaa;text-align:center">Nenhum pedido nesta data</td></tr>';
+
+  document.getElementById('fechamento-corpo').innerHTML =
+    '<div style="display:grid;gap:20px">'
+
+    // ── Bloco Abertura ──
+    +'<div>'
+    +'<h3 style="font-size:13px;font-weight:700;text-transform:uppercase;color:#e05c1a;margin:0 0 10px;letter-spacing:.8px">💰 Abertura de Caixa — '+fmtD+'</h3>'
+    +'<table style="width:100%;border-collapse:collapse;font-size:13px">'
+    +'<thead><tr style="background:#f4f4f8"><th style="padding:8px 12px;text-align:left">Item</th><th style="padding:8px 12px;text-align:right">Valor (R$)</th></tr></thead>'
+    +'<tbody>'
+    +'<tr><td style="padding:7px 12px;border-bottom:1px solid #f0f0f0">Moeda</td><td style="padding:7px 12px;text-align:right;border-bottom:1px solid #f0f0f0">'+fmtValor(moeda)+'</td></tr>'
+    +'<tr><td style="padding:7px 12px;border-bottom:1px solid #f0f0f0">Cédula</td><td style="padding:7px 12px;text-align:right;border-bottom:1px solid #f0f0f0">'+fmtValor(cedula)+'</td></tr>'
+    +'<tr style="font-weight:700;background:#fff8f5"><td style="padding:8px 12px">Total em Caixa</td><td style="padding:8px 12px;text-align:right;color:#e05c1a">'+fmtValor(totalAbertura)+'</td></tr>'
+    +'</tbody></table>'
+    +'</div>'
+
+    // ── Bloco Vendas Resumo ──
+    +'<div>'
+    +'<h3 style="font-size:13px;font-weight:700;text-transform:uppercase;color:#e05c1a;margin:0 0 10px;letter-spacing:.8px">🛵 Vendas do Dia</h3>'
+    +'<table style="width:100%;border-collapse:collapse;font-size:13px">'
+    +'<thead><tr style="background:#f4f4f8"><th style="padding:8px 12px;text-align:left">Item</th><th style="padding:8px 12px;text-align:right">Valor</th></tr></thead>'
+    +'<tbody>'
+    +'<tr><td style="padding:7px 12px;border-bottom:1px solid #f0f0f0">Quantidade de pedidos</td><td style="padding:7px 12px;text-align:right;border-bottom:1px solid #f0f0f0">'+qtdPedidos+'</td></tr>'
+    +'<tr style="font-weight:700;background:#fff8f5"><td style="padding:8px 12px">Total de Vendas</td><td style="padding:8px 12px;text-align:right;color:#e05c1a">R$ '+fmtValor(totalVendas)+'</td></tr>'
+    +'</tbody></table>'
+    +'</div>'
+
+    // ── Bloco por Forma de Recebimento ──
+    +'<div>'
+    +'<h3 style="font-size:13px;font-weight:700;text-transform:uppercase;color:#e05c1a;margin:0 0 10px;letter-spacing:.8px">💳 Totais por Forma de Recebimento</h3>'
+    +'<table style="width:100%;border-collapse:collapse;font-size:13px">'
+    +'<thead><tr style="background:#f4f4f8"><th style="padding:8px 12px;text-align:left">Forma</th><th style="padding:8px 12px;text-align:center">Pedidos</th><th style="padding:8px 12px;text-align:right">Total (R$)</th></tr></thead>'
+    +'<tbody>'+linhasFormas+'</tbody>'
+    +'</table>'
+    +'</div>'
+
+    +'</div>';
+}
 
 // ============================================================
 // ABERTURA DE CAIXA
