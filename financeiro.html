@@ -614,7 +614,7 @@ tbody tr:hover td{background:#fafafe}
       <div class="form-row"><div class="fg"><label class="field-req">Nome / Razão social</label><input id="forn-nome" placeholder="Ex: Laticínios BH Ltda"></div></div>
       <div class="form-row cols3">
         <div class="fg"><label class="field-req">Tipo</label>
-          <select id="forn-tipo"><option value="Fornecedor">Fornecedor</option><option value="Cliente">Cliente</option><option value="Ambos">Fornecedor e Cliente</option><option value="Funcionário">Funcionário</option><option value="Outros">Outros</option></select>
+          <select id="forn-tipo"><option value="Fornecedor">Fornecedor</option><option value="Cliente">Cliente</option><option value="Ambos">Fornecedor e Cliente</option><option value="Funcionário">Funcionário</option><option value="Motoboy">Motoboy</option><option value="Outros">Outros</option></select>
         </div>
         <div class="fg"><label>CNPJ / CPF</label><input id="forn-doc" placeholder="00.000.000/0001-00" maxlength="18"></div>
         <div class="fg"><label>Contato (WhatsApp)</label><input id="forn-fone" placeholder="(00) 9 0000-0000"></div>
@@ -2506,7 +2506,7 @@ function parseBRVal(v){ return parseFloat((v||'').replace(/\./g,'').replace(',',
 function calcTrocoPedido(){
   var venda  = parseBRVal(document.getElementById('pedido-valor-venda').value);
   var trocop = parseBRVal(document.getElementById('pedido-troco-para').value);
-  var troco  = (trocop > 0 && trocop > venda) ? trocop - venda : 0;
+  var troco  = (venda > 0 && trocop > 0) ? venda - trocop : 0;
   document.getElementById('pedido-troco').value = troco > 0 ? fmtBR(troco) : '';
 }
 
@@ -2516,7 +2516,7 @@ function openPedido(id) {
   selRec.innerHTML = '<option value="">— Selecione —</option>' +
     formas.map(function(f){return '<option value="'+f.id+'">'+f.nome+'</option>';}).join('');
 
-  var forn   = db.get('fornecedores').filter(function(f){return f.ativo!=0;});
+  var forn   = db.get('fornecedores').filter(function(f){return f.ativo!=0 && f.tipo==='Motoboy';});
   var selEnt = document.getElementById('pedido-entregador');
   selEnt.innerHTML = '<option value="">— Selecione —</option>' +
     forn.map(function(f){return '<option value="'+f.id+'">'+f.nome+'</option>';}).join('');
