@@ -2679,71 +2679,116 @@ function toggleRecebidoPedido(id, checked) {
 // FECHAMENTO DE CAIXA
 // ============================================================
 function renderFechamentoCaixa() {
-  var inp  = document.getElementById('fechamento-data');
+  var inp = document.getElementById('fechamento-data');
   if (!inp) return;
   if (!inp.value) { inp.value = new Date().toISOString().slice(0,10); }
   var data = inp.value;
   var fmtD = data.split('-').reverse().join('/');
 
   // Abertura do dia
-  var aberturas = db.get('aberturacaixa').filter(function(a){ return a.data === data; });
-  var moeda  = aberturas.reduce(function(s,a){ return s+(a.moeda||0); }, 0);
-  var cedula = aberturas.reduce(function(s,a){ return s+(a.cedula||0); }, 0);
+  var aberturas     = db.get('aberturacaixa').filter(function(a){ return a.data === data; });
+  var moeda         = aberturas.reduce(function(s,a){ return s+(a.moeda||0); }, 0);
+  var cedula        = aberturas.reduce(function(s,a){ return s+(a.cedula||0); }, 0);
   var totalAbertura = moeda + cedula;
 
-  // Pedidos do dia
-  var pedidos = db.get('pedidos').filter(function(p){ return p.data === data; });
-  var qtdPedidos   = pedidos.length;
-  var totalVendas  = pedidos.reduce(function(s,p){ return s+(p.valorVenda||0); }, 0);
+  // Pedidos do dia — todos e só os marcados
+  var pedidos        = db.get('pedidos').filter(function(p){ return p.data === data; });
+  var pedidosMarcados= pedidos.filter(function(p){ return p.recebido == 1; });
+  var qtdTotal       = pedidos.length;
+  var qtdMarcados    = pedidosMarcados.length;
+  var totalVendas    = pedidos.reduce(function(s,p){ return s+(p.valorVenda||0); }, 0);
+  var totalMarcados  = pedidosMarcados.reduce(function(s,p){ return s+(p.valorVenda||0); }, 0);
 
-  // Totais por forma de recebimento
-  var formas     = db.get('formas');
-  var nomeForma  = function(id){ var f=formas.find(function(x){return x.id==id;}); return f?f.nome:(id||'—'); };
+  // Totais por forma de recebimento (somente marcados)
+  var formas    = db.get('formas');
+  var nomeForma = function(id){ var f=formas.find(function(x){return x.id==id;}); return f?f.nome:(id||'—'); };
   var grupos = {};
-  pedidos.forEach(function(p){
+  pedidosMarcados.forEach(function(p){
     var k = p.recebimento || '—';
     if (!grupos[k]) grupos[k] = { nome: nomeForma(p.recebimento), total: 0, qtd: 0 };
     grupos[k].total += (p.valorVenda||0);
     grupos[k].qtd   += 1;
   });
+  var gruposArr    = Object.values(grupos);
+  var totalFormas  = gruposArr.reduce(function(s,g){ return s+g.total; }, 0);
+  var linhasFormas = gruposArr.map(function(g){
+    return '<tr>'
+      +'<td style="padding:7px 12px;border-bottom:1px solid #f0f0f0">'+g.nome+'</td>'
+      +'<td style="padding:7px 12px;text-align:center;border-bottom:1px solid #f0f0f0">'+g.qtd+'</td>'
+      +'<td style="padding:7px 12px;text-align:right;border-bottom:1px solid #f0f0f0">'+fmtValor(g.total)+'</td>'
+      +'</tr>';
+  }).join('') || '<tr><td colspan="3" style="color:#aaa;text-align:center;padding:12px">Nenhum pedido marcado como recebido nesta data</td></tr>';
 
-  var linhasFormas = Object.values(grupos).map(function(g){
-    return '<tr><td>'+g.nome+'</td><td style="text-align:center">'+g.qtd+'</td><td style="text-align:right">R$ '+fmtValor(g.total)+'</td></tr>';
-  }).join('') || '<tr><td colspan="3" style="color:#aaa;text-align:center">Nenhum pedido nesta data</td></tr>';
+  // Conferência: (abertura + total marcados) vs total de vendas
+  var totalEmCaixa = totalAbertura + totalFormas;
+  var diferenca    = totalEmCaixa - totalVendas;
+  var fechado      = Math.abs(diferenca) < 0.005; // tolerância de centavos
+  var corStatus    = fechado ? '#1a8a3c' : '#c0392b';
+  var bgStatus     = fechado ? '#edfaf1' : '#fdf0ef';
+  var bdStatus     = fechado ? '#b7e8c8' : '#f5c0bc';
+  var msgStatus    = fechado
+    ? '✅ Caixa fechado! O total recebido confere com as vendas do dia.'
+    : '⚠️ Caixa com diferença de R$ '+fmtValor(Math.abs(diferenca))
+      +' — '+(diferenca > 0 ? 'sobra no caixa.' : 'falta no caixa.');
+
+  var tdS = 'style="padding:7px 12px;border-bottom:1px solid #f0f0f0"';
+  var tdR = 'style="padding:7px 12px;text-align:right;border-bottom:1px solid #f0f0f0"';
 
   document.getElementById('fechamento-corpo').innerHTML =
     '<div style="display:grid;gap:20px">'
 
-    // ── Bloco Abertura ──
+    // ── Abertura ──
     +'<div>'
     +'<h3 style="font-size:13px;font-weight:700;text-transform:uppercase;color:#e05c1a;margin:0 0 10px;letter-spacing:.8px">💰 Abertura de Caixa — '+fmtD+'</h3>'
     +'<table style="width:100%;border-collapse:collapse;font-size:13px">'
     +'<thead><tr style="background:#f4f4f8"><th style="padding:8px 12px;text-align:left">Item</th><th style="padding:8px 12px;text-align:right">Valor (R$)</th></tr></thead>'
     +'<tbody>'
-    +'<tr><td style="padding:7px 12px;border-bottom:1px solid #f0f0f0">Moeda</td><td style="padding:7px 12px;text-align:right;border-bottom:1px solid #f0f0f0">'+fmtValor(moeda)+'</td></tr>'
-    +'<tr><td style="padding:7px 12px;border-bottom:1px solid #f0f0f0">Cédula</td><td style="padding:7px 12px;text-align:right;border-bottom:1px solid #f0f0f0">'+fmtValor(cedula)+'</td></tr>'
-    +'<tr style="font-weight:700;background:#fff8f5"><td style="padding:8px 12px">Total em Caixa</td><td style="padding:8px 12px;text-align:right;color:#e05c1a">'+fmtValor(totalAbertura)+'</td></tr>'
+    +'<tr><td '+tdS+'>Moeda</td><td '+tdR+'>'+fmtValor(moeda)+'</td></tr>'
+    +'<tr><td '+tdS+'>Cédula</td><td '+tdR+'>'+fmtValor(cedula)+'</td></tr>'
+    +'<tr style="font-weight:700;background:#fff8f5"><td style="padding:8px 12px">Total em Caixa (Abertura)</td><td style="padding:8px 12px;text-align:right;color:#e05c1a">'+fmtValor(totalAbertura)+'</td></tr>'
     +'</tbody></table>'
     +'</div>'
 
-    // ── Bloco Vendas Resumo ──
+    // ── Vendas ──
     +'<div>'
     +'<h3 style="font-size:13px;font-weight:700;text-transform:uppercase;color:#e05c1a;margin:0 0 10px;letter-spacing:.8px">🛵 Vendas do Dia</h3>'
     +'<table style="width:100%;border-collapse:collapse;font-size:13px">'
     +'<thead><tr style="background:#f4f4f8"><th style="padding:8px 12px;text-align:left">Item</th><th style="padding:8px 12px;text-align:right">Valor</th></tr></thead>'
     +'<tbody>'
-    +'<tr><td style="padding:7px 12px;border-bottom:1px solid #f0f0f0">Quantidade de pedidos</td><td style="padding:7px 12px;text-align:right;border-bottom:1px solid #f0f0f0">'+qtdPedidos+'</td></tr>'
-    +'<tr style="font-weight:700;background:#fff8f5"><td style="padding:8px 12px">Total de Vendas</td><td style="padding:8px 12px;text-align:right;color:#e05c1a">R$ '+fmtValor(totalVendas)+'</td></tr>'
+    +'<tr><td '+tdS+'>Total de pedidos no dia</td><td style="padding:7px 12px;text-align:right;border-bottom:1px solid #f0f0f0">'+qtdTotal+'</td></tr>'
+    +'<tr><td '+tdS+'>Pedidos marcados como recebidos</td><td style="padding:7px 12px;text-align:right;border-bottom:1px solid #f0f0f0">'+qtdMarcados+'</td></tr>'
+    +'<tr><td '+tdS+'>Total de vendas (todos os pedidos)</td><td '+tdR+'>R$ '+fmtValor(totalVendas)+'</td></tr>'
+    +'<tr style="font-weight:700;background:#fff8f5"><td style="padding:8px 12px">Total recebido (marcados)</td><td style="padding:8px 12px;text-align:right;color:#e05c1a">R$ '+fmtValor(totalMarcados)+'</td></tr>'
     +'</tbody></table>'
     +'</div>'
 
-    // ── Bloco por Forma de Recebimento ──
+    // ── Por Forma de Recebimento (marcados) ──
     +'<div>'
-    +'<h3 style="font-size:13px;font-weight:700;text-transform:uppercase;color:#e05c1a;margin:0 0 10px;letter-spacing:.8px">💳 Totais por Forma de Recebimento</h3>'
+    +'<h3 style="font-size:13px;font-weight:700;text-transform:uppercase;color:#e05c1a;margin:0 0 10px;letter-spacing:.8px">💳 Recebimentos Marcados por Forma</h3>'
     +'<table style="width:100%;border-collapse:collapse;font-size:13px">'
-    +'<thead><tr style="background:#f4f4f8"><th style="padding:8px 12px;text-align:left">Forma</th><th style="padding:8px 12px;text-align:center">Pedidos</th><th style="padding:8px 12px;text-align:right">Total (R$)</th></tr></thead>'
-    +'<tbody>'+linhasFormas+'</tbody>'
+    +'<thead><tr style="background:#f4f4f8">'
+    +'<th style="padding:8px 12px;text-align:left">Forma</th>'
+    +'<th style="padding:8px 12px;text-align:center">Qtd</th>'
+    +'<th style="padding:8px 12px;text-align:right">Total (R$)</th>'
+    +'</tr></thead>'
+    +'<tbody>'+linhasFormas
+    +'<tr style="font-weight:700;background:#fff8f5">'
+    +'<td style="padding:8px 12px" colspan="2">Total recebido por formas</td>'
+    +'<td style="padding:8px 12px;text-align:right;color:#e05c1a">'+fmtValor(totalFormas)+'</td>'
+    +'</tr>'
+    +'</tbody></table>'
+    +'</div>'
+
+    // ── Conferência ──
+    +'<div style="border:1.5px solid '+bdStatus+';border-radius:10px;padding:16px 20px;background:'+bgStatus+'">'
+    +'<p style="margin:0 0 8px;font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:.8px;color:'+corStatus+'">🔒 Conferência de Caixa</p>'
+    +'<table style="width:100%;border-collapse:collapse;font-size:13px;color:#333">'
+    +'<tr><td style="padding:4px 0">Abertura de caixa</td><td style="text-align:right;padding:4px 0">R$ '+fmtValor(totalAbertura)+'</td></tr>'
+    +'<tr><td style="padding:4px 0">+ Recebimentos marcados</td><td style="text-align:right;padding:4px 0">R$ '+fmtValor(totalFormas)+'</td></tr>'
+    +'<tr style="border-top:1px solid '+bdStatus+'"><td style="padding:6px 0;font-weight:700">= Total em caixa</td><td style="text-align:right;padding:6px 0;font-weight:700">R$ '+fmtValor(totalEmCaixa)+'</td></tr>'
+    +'<tr><td style="padding:4px 0;color:#666">Total de vendas</td><td style="text-align:right;padding:4px 0;color:#666">R$ '+fmtValor(totalVendas)+'</td></tr>'
     +'</table>'
+    +'<p style="margin:14px 0 0;font-size:14px;font-weight:700;color:'+corStatus+'">'+msgStatus+'</p>'
     +'</div>'
 
     +'</div>';
