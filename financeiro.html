@@ -2691,118 +2691,116 @@ function renderFechamentoCaixa() {
   var cedula        = aberturas.reduce(function(s,a){ return s+(a.cedula||0); }, 0);
   var totalAbertura = moeda + cedula;
 
-  // Pedidos do dia — todos e só os marcados
-  var pedidos        = db.get('pedidos').filter(function(p){ return p.data === data; });
-  var pedidosMarcados= pedidos.filter(function(p){ return p.recebido == 1; });
-  var qtdTotal       = pedidos.length;
-  var qtdMarcados    = pedidosMarcados.length;
-  var totalVendas    = pedidos.reduce(function(s,p){ return s+(p.valorVenda||0); }, 0);
-  var totalMarcados  = pedidosMarcados.reduce(function(s,p){ return s+(p.valorVenda||0); }, 0);
+  // Pedidos do dia
+  var pedidos         = db.get('pedidos').filter(function(p){ return p.data === data; });
+  var pedidosMarcados = pedidos.filter(function(p){ return p.recebido == 1; });
+  var qtdTotal        = pedidos.length;
+  var qtdMarcados     = pedidosMarcados.length;
+  var totalVendas     = pedidos.reduce(function(s,p){ return s+(p.valorVenda||0); }, 0);
 
-  // Totais por forma de recebimento (somente marcados)
-  var formas    = db.get('formas');
-  var nomeForma = function(id){ var f=formas.find(function(x){return x.id==id;}); return f?f.nome:(id||'—'); };
+  // Identificar formas "dinheiro" pelo nome
+  var formas      = db.get('formas');
+  var nomeForma   = function(id){ var f=formas.find(function(x){return x.id==id;}); return f?f.nome:(id||'—'); };
+  var idsDinheiro = formas
+    .filter(function(f){ return f.nome.toLowerCase().indexOf('dinheiro') >= 0; })
+    .map(function(f){ return f.id; });
+
+  // Separar: cash vs outros (apenas marcados)
+  var pedidosCash   = pedidosMarcados.filter(function(p){ return idsDinheiro.indexOf(Number(p.recebimento)) >= 0; });
+  var pedidosOutros = pedidosMarcados.filter(function(p){ return idsDinheiro.indexOf(Number(p.recebimento)) < 0; });
+
+  // Bloco Caixa (dinheiro)
+  // Lançamento em dinheiro = trocoPara (valor pago pelo cliente); se zero, usa valorVenda
+  var cashRecebido = pedidosCash.reduce(function(s,p){ return s + (p.trocoPara > 0 ? p.trocoPara : (p.valorVenda||0)); }, 0);
+  var cashTroco    = pedidosCash.reduce(function(s,p){ return s + (p.troco||0); }, 0);
+  var totalCaixa   = totalAbertura + cashRecebido - cashTroco;
+
+  // Bloco Outros (não dinheiro), agrupados por forma
   var grupos = {};
-  pedidosMarcados.forEach(function(p){
+  pedidosOutros.forEach(function(p){
     var k = p.recebimento || '—';
     if (!grupos[k]) grupos[k] = { nome: nomeForma(p.recebimento), total: 0, qtd: 0 };
     grupos[k].total += (p.valorVenda||0);
     grupos[k].qtd   += 1;
   });
-  var gruposArr    = Object.values(grupos);
-  var totalFormas  = gruposArr.reduce(function(s,g){ return s+g.total; }, 0);
-  var linhasFormas = gruposArr.map(function(g){
+  var gruposArr   = Object.values(grupos);
+  var totalOutros = gruposArr.reduce(function(s,g){ return s+g.total; }, 0);
+
+  var linhasOutros = gruposArr.map(function(g){
     return '<tr>'
       +'<td style="padding:7px 12px;border-bottom:1px solid #f0f0f0">'+g.nome+'</td>'
       +'<td style="padding:7px 12px;text-align:center;border-bottom:1px solid #f0f0f0">'+g.qtd+'</td>'
       +'<td style="padding:7px 12px;text-align:right;border-bottom:1px solid #f0f0f0">'+fmtValor(g.total)+'</td>'
       +'</tr>';
-  }).join('') || '<tr><td colspan="3" style="color:#aaa;text-align:center;padding:12px">Nenhum pedido marcado como recebido nesta data</td></tr>';
+  }).join('') || '<tr><td colspan="3" style="color:#aaa;text-align:center;padding:12px">Nenhum pedido (não dinheiro) marcado</td></tr>';
 
-  // Conferência: Valor em caixa (marcados) - Fechamento da noite (todos) - Abertura = saldo
-  var valorEmCaixa      = totalMarcados;          // pedidos marcados como recebido
-  var fechamentNoite    = totalVendas;             // soma de todos os pedidos do dia
-  var saldoFinal        = valorEmCaixa - fechamentNoite - totalAbertura;
-  var fechado           = Math.abs(saldoFinal) < 0.005;
-  var corStatus         = fechado ? '#1a8a3c' : '#c0392b';
-  var bgStatus          = fechado ? '#edfaf1' : '#fdf0ef';
-  var bdStatus          = fechado ? '#b7e8c8' : '#f5c0bc';
-  var msgStatus         = fechado
-    ? '✅ Caixa fechado! O saldo final zerou corretamente.'
-    : '⚠️ Caixa não fechou — saldo de R$ '+fmtValor(Math.abs(saldoFinal))
-      +' '+(saldoFinal > 0 ? '(sobra no caixa).' : '(falta no caixa).');
+  // Conferência: totalRecebido - fechamento_noite - abertura = saldo
+  // totalRecebido = totalCaixa + totalOutros
+  //              = (abertura + cashRecebido - cashTroco) + totalOutros
+  //              = abertura + valorVenda_cash_marcados + totalOutros
+  // saldo = totalRecebido - totalVendas - totalAbertura
+  //       = valorVenda_cash_marcados + totalOutros - totalVendas  → 0 quando todos marcados
+  var totalRecebido = totalCaixa + totalOutros;
+  var saldoFinal    = totalRecebido - totalVendas - totalAbertura;
+  var fechado       = Math.abs(saldoFinal) < 0.005;
+  var corS = fechado ? '#1a8a3c' : '#c0392b';
+  var bgS  = fechado ? '#edfaf1' : '#fdf0ef';
+  var bdS  = fechado ? '#b7e8c8' : '#f5c0bc';
+  var msgS = fechado
+    ? '✅ Caixa fechado! O saldo zerou corretamente.'
+    : '⚠️ Caixa não fechou — '+(saldoFinal > 0 ? 'sobra' : 'falta')+' R$ '+fmtValor(Math.abs(saldoFinal))+'.';
 
-  var tdS = 'style="padding:7px 12px;border-bottom:1px solid #f0f0f0"';
-  var tdR = 'style="padding:7px 12px;text-align:right;border-bottom:1px solid #f0f0f0"';
+  var p7  = 'style="padding:7px 12px;border-bottom:1px solid #f0f0f0"';
+  var p7r = 'style="padding:7px 12px;text-align:right;border-bottom:1px solid #f0f0f0"';
 
   document.getElementById('fechamento-corpo').innerHTML =
     '<div style="display:grid;gap:20px">'
 
-    // ── Abertura ──
+    // ── Caixa (dinheiro físico) ──
     +'<div>'
-    +'<h3 style="font-size:13px;font-weight:700;text-transform:uppercase;color:#e05c1a;margin:0 0 10px;letter-spacing:.8px">💰 Abertura de Caixa — '+fmtD+'</h3>'
+    +'<h3 style="font-size:13px;font-weight:700;text-transform:uppercase;color:#e05c1a;margin:0 0 10px;letter-spacing:.8px">💵 Caixa (Dinheiro) — '+fmtD+'</h3>'
     +'<table style="width:100%;border-collapse:collapse;font-size:13px">'
     +'<thead><tr style="background:#f4f4f8"><th style="padding:8px 12px;text-align:left">Item</th><th style="padding:8px 12px;text-align:right">Valor (R$)</th></tr></thead>'
     +'<tbody>'
-    +'<tr><td '+tdS+'>Moeda</td><td '+tdR+'>'+fmtValor(moeda)+'</td></tr>'
-    +'<tr><td '+tdS+'>Cédula</td><td '+tdR+'>'+fmtValor(cedula)+'</td></tr>'
-    +'<tr style="font-weight:700;background:#fff8f5"><td style="padding:8px 12px">Total em Caixa (Abertura)</td><td style="padding:8px 12px;text-align:right;color:#e05c1a">'+fmtValor(totalAbertura)+'</td></tr>'
+    +'<tr><td '+p7+'>Abertura — Moeda</td><td '+p7r+'>'+fmtValor(moeda)+'</td></tr>'
+    +'<tr><td '+p7+'>Abertura — Cédula</td><td '+p7r+'>'+fmtValor(cedula)+'</td></tr>'
+    +'<tr><td '+p7+'>+ Lançamentos em dinheiro ('+pedidosCash.length+' pedidos)</td><td '+p7r+'>'+fmtValor(cashRecebido)+'</td></tr>'
+    +'<tr><td '+p7+'>− Troco devolvido</td><td '+p7r+'>'+fmtValor(cashTroco)+'</td></tr>'
+    +'<tr style="font-weight:700;background:#fff8f5"><td style="padding:8px 12px">= Total em caixa (dinheiro)</td><td style="padding:8px 12px;text-align:right;color:#e05c1a">'+fmtValor(totalCaixa)+'</td></tr>'
     +'</tbody></table>'
     +'</div>'
 
-    // ── Vendas ──
+    // ── Outros recebimentos (não dinheiro) ──
     +'<div>'
-    +'<h3 style="font-size:13px;font-weight:700;text-transform:uppercase;color:#e05c1a;margin:0 0 10px;letter-spacing:.8px">🛵 Vendas do Dia</h3>'
-    +'<table style="width:100%;border-collapse:collapse;font-size:13px">'
-    +'<thead><tr style="background:#f4f4f8"><th style="padding:8px 12px;text-align:left">Item</th><th style="padding:8px 12px;text-align:right">Valor</th></tr></thead>'
-    +'<tbody>'
-    +'<tr><td '+tdS+'>Total de pedidos no dia</td><td style="padding:7px 12px;text-align:right;border-bottom:1px solid #f0f0f0">'+qtdTotal+'</td></tr>'
-    +'<tr><td '+tdS+'>Pedidos marcados como recebidos</td><td style="padding:7px 12px;text-align:right;border-bottom:1px solid #f0f0f0">'+qtdMarcados+'</td></tr>'
-    +'<tr><td '+tdS+'>Total de vendas (todos os pedidos)</td><td '+tdR+'>R$ '+fmtValor(totalVendas)+'</td></tr>'
-    +'<tr style="font-weight:700;background:#fff8f5"><td style="padding:8px 12px">Total recebido (marcados)</td><td style="padding:8px 12px;text-align:right;color:#e05c1a">R$ '+fmtValor(totalMarcados)+'</td></tr>'
-    +'</tbody></table>'
-    +'</div>'
-
-    // ── Por Forma de Recebimento (marcados) ──
-    +'<div>'
-    +'<h3 style="font-size:13px;font-weight:700;text-transform:uppercase;color:#e05c1a;margin:0 0 10px;letter-spacing:.8px">💳 Recebimentos Marcados por Forma</h3>'
+    +'<h3 style="font-size:13px;font-weight:700;text-transform:uppercase;color:#e05c1a;margin:0 0 10px;letter-spacing:.8px">💳 Outros Recebimentos (não dinheiro)</h3>'
     +'<table style="width:100%;border-collapse:collapse;font-size:13px">'
     +'<thead><tr style="background:#f4f4f8">'
     +'<th style="padding:8px 12px;text-align:left">Forma</th>'
     +'<th style="padding:8px 12px;text-align:center">Qtd</th>'
     +'<th style="padding:8px 12px;text-align:right">Total (R$)</th>'
     +'</tr></thead>'
-    +'<tbody>'+linhasFormas
+    +'<tbody>'+linhasOutros
     +'<tr style="font-weight:700;background:#fff8f5">'
-    +'<td style="padding:8px 12px" colspan="2">Total recebido por formas</td>'
-    +'<td style="padding:8px 12px;text-align:right;color:#e05c1a">'+fmtValor(totalFormas)+'</td>'
-    +'</tr>'
-    +'</tbody></table>'
+    +'<td style="padding:8px 12px" colspan="2">= Total outros recebimentos</td>'
+    +'<td style="padding:8px 12px;text-align:right;color:#e05c1a">'+fmtValor(totalOutros)+'</td>'
+    +'</tr></tbody></table>'
     +'</div>'
 
     // ── Conferência ──
-    +'<div style="border:1.5px solid '+bdStatus+';border-radius:10px;padding:16px 20px;background:'+bgStatus+'">'
-    +'<p style="margin:0 0 12px;font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:.8px;color:'+corStatus+'">🔒 Conferência de Caixa</p>'
+    +'<div style="border:1.5px solid '+bdS+';border-radius:10px;padding:16px 20px;background:'+bgS+'">'
+    +'<p style="margin:0 0 12px;font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:.8px;color:'+corS+'">🔒 Conferência de Caixa</p>'
     +'<table style="width:100%;border-collapse:collapse;font-size:13px;color:#333">'
-    +'<tr>'
-    +'<td style="padding:5px 0">Valor em caixa <span style="font-size:11px;color:#888">(pedidos marcados como recebido)</span></td>'
-    +'<td style="text-align:right;padding:5px 0">R$ '+fmtValor(valorEmCaixa)+'</td>'
-    +'</tr>'
-    +'<tr>'
-    +'<td style="padding:5px 0">− Fechamento da noite <span style="font-size:11px;color:#888">(soma de todos os pedidos)</span></td>'
-    +'<td style="text-align:right;padding:5px 0">− R$ '+fmtValor(fechamentNoite)+'</td>'
-    +'</tr>'
-    +'<tr>'
-    +'<td style="padding:5px 0">− Abertura do caixa</td>'
-    +'<td style="text-align:right;padding:5px 0">− R$ '+fmtValor(totalAbertura)+'</td>'
-    +'</tr>'
-    +'<tr style="border-top:2px solid '+bdStatus+'">'
+    +'<tr><td style="padding:5px 0">Valor em caixa <span style="font-size:11px;color:#888">(dinheiro + outros recebimentos)</span></td><td style="text-align:right;padding:5px 0">R$ '+fmtValor(totalRecebido)+'</td></tr>'
+    +'<tr><td style="padding:5px 0">− Fechamento da noite <span style="font-size:11px;color:#888">(total de vendas do dia)</span></td><td style="text-align:right;padding:5px 0">− R$ '+fmtValor(totalVendas)+'</td></tr>'
+    +'<tr><td style="padding:5px 0">− Abertura do caixa</td><td style="text-align:right;padding:5px 0">− R$ '+fmtValor(totalAbertura)+'</td></tr>'
+    +'<tr style="border-top:2px solid '+bdS+'">'
     +'<td style="padding:8px 0;font-weight:700;font-size:14px">= Saldo final</td>'
-    +'<td style="text-align:right;padding:8px 0;font-weight:700;font-size:14px;color:'+corStatus+'">R$ '+fmtValor(saldoFinal)+'</td>'
-    +'</tr>'
-    +'</table>'
-    +'<p style="margin:14px 0 0;font-size:14px;font-weight:700;color:'+corStatus+'">'+msgStatus+'</p>'
+    +'<td style="text-align:right;padding:8px 0;font-weight:700;font-size:14px;color:'+corS+'">R$ '+fmtValor(saldoFinal)+'</td>'
+    +'</tr></table>'
+    +'<p style="margin:14px 0 0;font-size:14px;font-weight:700;color:'+corS+'">'+msgS+'</p>'
     +'</div>'
+
+    +'<div style="font-size:12px;color:#aaa;text-align:right">Pedidos no dia: '+qtdTotal+' | Marcados como recebidos: '+qtdMarcados+'</div>'
 
     +'</div>';
 }
