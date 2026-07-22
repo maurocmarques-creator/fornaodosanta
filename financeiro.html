@@ -276,6 +276,7 @@ tbody tr:hover td{background:#fafafe}
     <div class="sb-item" id="nav-pedidos" onclick="nav('pedidos',this)"><span class="ic">🛵</span> Lançamento de pedidos</div>
     <div class="sb-item" id="nav-aberturacaixa" onclick="nav('aberturacaixa',this)"><span class="ic">💰</span> Abertura de caixa</div>
     <div class="sb-item" id="nav-fechamentocaixa" onclick="nav('fechamentocaixa',this)"><span class="ic">🔒</span> Fechamento de caixa</div>
+    <div class="sb-item" id="nav-regmotoboy" onclick="nav('regmotoboy',this)"><span class="ic">🕐</span> Registro Motoboy</div>
   </div>
 </nav>
 
@@ -579,7 +580,41 @@ tbody tr:hover td{background:#fafafe}
       </div>
     </div>
 
-    <!-- CUSTO SAÍDA MOTOBOY -->
+    <!-- REGISTRO CHEGADA/SAÍDA MOTOBOY -->
+<div class="modal-overlay" id="modal-regmotoboy">
+  <div class="modal" style="width:560px">
+    <div class="modal-hd">
+      <h3 id="modal-regmotoboy-title">🕐 Novo Registro Motoboy</h3>
+      <button class="modal-close" onclick="closeModal('modal-regmotoboy')">✕</button>
+    </div>
+    <div class="modal-body">
+      <input type="hidden" id="regmotoboy-edit-id">
+      <div class="form-row cols2">
+        <div class="fg"><label class="field-req">Data</label><input id="regmotoboy-data" type="date" onchange="onDataRegMotoboy()"></div>
+        <div class="fg"><label>Dia da Semana</label><input id="regmotoboy-dia" type="text" readonly style="background:#f4f4f8;font-weight:600"></div>
+      </div>
+      <div class="form-row cols1">
+        <div class="fg"><label class="field-req">Motoboy</label><select id="regmotoboy-motoboy"><option value="">— Selecione —</option></select></div>
+      </div>
+      <div class="form-row cols3">
+        <div class="fg"><label>Hora Entrada</label><input id="regmotoboy-entrada" type="time" onchange="calcRegMotoboy()"></div>
+        <div class="fg"><label>Hora Saída</label><input id="regmotoboy-saida" type="time" onchange="calcRegMotoboy()"></div>
+        <div class="fg"><label>Horas</label><input id="regmotoboy-horas" type="text" readonly placeholder="0,00" style="background:#f4f4f8;font-weight:600"></div>
+      </div>
+      <div class="form-row cols3">
+        <div class="fg"><label>Valor da Hora (R$)</label><input id="regmotoboy-vlhora" type="text" readonly placeholder="0,00" style="background:#f4f4f8;font-weight:600"></div>
+        <div class="fg"><label>Diária (R$)</label><input id="regmotoboy-diaria" type="text" readonly placeholder="0,00" style="background:#f4f4f8;font-weight:700;color:#e05c1a"></div>
+        <div class="fg"><label>Status</label><select id="regmotoboy-status"><option value="Em aberto">Em aberto</option><option value="Pago">Pago</option></select></div>
+      </div>
+    </div>
+    <div class="modal-ft">
+      <button class="btn btn-ghost" onclick="closeModal('modal-regmotoboy')">Cancelar</button>
+      <button class="btn btn-primary" onclick="salvarRegistroMotoboy()">💾 Salvar</button>
+    </div>
+  </div>
+</div>
+
+<!-- CUSTO SAÍDA MOTOBOY -->
 <div class="modal-overlay" id="modal-customotob">
   <div class="modal" style="width:520px">
     <div class="modal-hd">
@@ -647,7 +682,41 @@ tbody tr:hover td{background:#fafafe}
       </div>
     </div>
 
-    <!-- CUSTO SAÍDA MOTOBOY -->
+    <!-- REGISTRO CHEGADA/SAÍDA MOTOBOY -->
+<div class="modal-overlay" id="modal-regmotoboy">
+  <div class="modal" style="width:560px">
+    <div class="modal-hd">
+      <h3 id="modal-regmotoboy-title">🕐 Novo Registro Motoboy</h3>
+      <button class="modal-close" onclick="closeModal('modal-regmotoboy')">✕</button>
+    </div>
+    <div class="modal-body">
+      <input type="hidden" id="regmotoboy-edit-id">
+      <div class="form-row cols2">
+        <div class="fg"><label class="field-req">Data</label><input id="regmotoboy-data" type="date" onchange="onDataRegMotoboy()"></div>
+        <div class="fg"><label>Dia da Semana</label><input id="regmotoboy-dia" type="text" readonly style="background:#f4f4f8;font-weight:600"></div>
+      </div>
+      <div class="form-row cols1">
+        <div class="fg"><label class="field-req">Motoboy</label><select id="regmotoboy-motoboy"><option value="">— Selecione —</option></select></div>
+      </div>
+      <div class="form-row cols3">
+        <div class="fg"><label>Hora Entrada</label><input id="regmotoboy-entrada" type="time" onchange="calcRegMotoboy()"></div>
+        <div class="fg"><label>Hora Saída</label><input id="regmotoboy-saida" type="time" onchange="calcRegMotoboy()"></div>
+        <div class="fg"><label>Horas</label><input id="regmotoboy-horas" type="text" readonly placeholder="0,00" style="background:#f4f4f8;font-weight:600"></div>
+      </div>
+      <div class="form-row cols3">
+        <div class="fg"><label>Valor da Hora (R$)</label><input id="regmotoboy-vlhora" type="text" readonly placeholder="0,00" style="background:#f4f4f8;font-weight:600"></div>
+        <div class="fg"><label>Diária (R$)</label><input id="regmotoboy-diaria" type="text" readonly placeholder="0,00" style="background:#f4f4f8;font-weight:700;color:#e05c1a"></div>
+        <div class="fg"><label>Status</label><select id="regmotoboy-status"><option value="Em aberto">Em aberto</option><option value="Pago">Pago</option></select></div>
+      </div>
+    </div>
+    <div class="modal-ft">
+      <button class="btn btn-ghost" onclick="closeModal('modal-regmotoboy')">Cancelar</button>
+      <button class="btn btn-primary" onclick="salvarRegistroMotoboy()">💾 Salvar</button>
+    </div>
+  </div>
+</div>
+
+<!-- CUSTO SAÍDA MOTOBOY -->
     <div class="screen" id="s-customotob">
       <div class="panel">
         <div class="panel-hd"><h2>Custo saída Motoboy</h2></div>
@@ -659,6 +728,24 @@ tbody tr:hover td{background:#fafafe}
               <th style="width:90px"></th>
             </tr></thead>
             <tbody id="tbl-customotob"></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- REGISTRO CHEGADA/SAÍDA MOTOBOY -->
+    <div class="screen" id="s-regmotoboy">
+      <div class="panel">
+        <div class="panel-hd"><h2>Registro Chegada/Saída Motoboy</h2></div>
+        <div class="panel-body nop tbl-wrap">
+          <table>
+            <thead><tr>
+              <th>Data</th><th>Dia</th><th>Motoboy</th>
+              <th>Entrada</th><th>Saída</th><th>Horas</th>
+              <th>Vl. Hora</th><th>Diária</th><th>Status</th>
+              <th style="width:90px"></th>
+            </tr></thead>
+            <tbody id="tbl-regmotoboy"></tbody>
           </table>
         </div>
       </div>
@@ -957,8 +1044,8 @@ try { const c = localStorage.getItem('__fb_cfg'); if(c) FIREBASE_CONFIG = JSON.p
 // ============================================================
 // STORAGE — cache em memória + Firebase ou localStorage
 // ============================================================
-const K = { bancos:'fin_bancos', fornecedores:'fin_forn', centros:'fin_cc', receber:'fin_receber', pagar:'fin_pagar', formas:'fin_formas', pedidos:'fin_pedidos', aberturacaixa:'fin_aberturacaixa', customotob:'fin_customotob' };
-let _cache = { bancos:[], fornecedores:[], centros:[], receber:[], pagar:[], formas:[], pedidos:[], aberturacaixa:[], customotob:[] };
+const K = { bancos:'fin_bancos', fornecedores:'fin_forn', centros:'fin_cc', receber:'fin_receber', pagar:'fin_pagar', formas:'fin_formas', pedidos:'fin_pedidos', aberturacaixa:'fin_aberturacaixa', customotob:'fin_customotob', regmotoboy:'fin_regmotoboy' };
+let _cache = { bancos:[], fornecedores:[], centros:[], receber:[], pagar:[], formas:[], pedidos:[], aberturacaixa:[], customotob:[], regmotoboy:[] };
 let _fsdb = null; // Firestore instance
 let _fbReady = false;
 
@@ -1231,7 +1318,8 @@ const TITLES = {
   dre:          ['DRE',                      'Resultado › Demonstração do Resultado', '', ''],
   pedidos:      ['Lançamento de Pedidos',    'Movimento caixa › Lançamento de pedidos', '+ Novo Pedido',    '__pedidos'],
   aberturacaixa:['Abertura de Caixa',       'Movimento caixa › Abertura de caixa',     '+ Nova Abertura',  '__aberturacaixa'],
-  fechamentocaixa:['Fechamento de Caixa',   'Movimento caixa › Fechamento de caixa',   '',                 '']
+  fechamentocaixa:['Fechamento de Caixa',   'Movimento caixa › Fechamento de caixa',   '',                 ''],
+  regmotoboy:   ['Registro Motoboy',        'Movimento caixa › Chegada/Saída Motoboy', '+ Novo Registro',  '__regmotoboy']
 };
 let _cur = 'bancos';
 
@@ -1256,11 +1344,12 @@ function topbarAction() {
   else if (t[3]==='__pagar') openLancamento('pagar');
   else if (t[3]==='__pedidos') openPedido();
   else if (t[3]==='__aberturacaixa') openAberturaCaixa();
+  else if (t[3]==='__regmotoboy') openRegistroMotoboy();
   else openModalNew(t[3]);
 }
 
 function renderScreen(id) {
-  const map = {bancos:renderBancos,fornecedores:renderFornecedores,centros:renderCentros,formas:renderFormas,receber:renderReceber,pagar:renderPagar,fluxo:initFluxo,conciliacao:initConciliacao,centrocusto:initCentroCusto,dre:initDRE,pedidos:renderPedidos,aberturacaixa:renderAberturaCaixa,fechamentocaixa:renderFechamentoCaixa,customotob:renderCustoMotoboy};
+  const map = {bancos:renderBancos,fornecedores:renderFornecedores,centros:renderCentros,formas:renderFormas,receber:renderReceber,pagar:renderPagar,fluxo:initFluxo,conciliacao:initConciliacao,centrocusto:initCentroCusto,dre:initDRE,pedidos:renderPedidos,aberturacaixa:renderAberturaCaixa,fechamentocaixa:renderFechamentoCaixa,customotob:renderCustoMotoboy,regmotoboy:renderRegistroMotoboy};
   if (map[id]) map[id]();
 }
 
@@ -2862,6 +2951,165 @@ function renderFechamentoCaixa() {
 }
 
 // ============================================================
+// REGISTRO CHEGADA/SAÍDA MOTOBOY
+// ============================================================
+var _diasPtBR = ['dom','seg','ter','qua','qui','sex','sab'];
+var _diasNomes = ['Domingo','Segunda-feira','Terça-feira','Quarta-feira','Quinta-feira','Sexta-feira','Sábado'];
+
+function _getDiaSemanaReg(dateStr) {
+  if (!dateStr) return {idx:0, id:'dom', nome:'Domingo'};
+  var parts = dateStr.split('-');
+  var d = new Date(Number(parts[0]), Number(parts[1])-1, Number(parts[2]));
+  var idx = d.getDay(); // 0=Dom … 6=Sab
+  return { idx: idx, id: _diasPtBR[idx], nome: _diasNomes[idx] };
+}
+
+function _getValorHoraReg(dateStr, diaId) {
+  var registros = db.get('customotob').filter(function(r){ return r.ini <= dateStr && r.fim >= dateStr; });
+  if (!registros.length) return 0;
+  return registros[0][diaId] || 0;
+}
+
+function _calcHorasReg(entrada, saida) {
+  if (!entrada || !saida) return 0;
+  var pe = entrada.split(':'); var ps = saida.split(':');
+  var minE = Number(pe[0])*60 + Number(pe[1]);
+  var minS = Number(ps[0])*60 + Number(ps[1]);
+  var diff = minS - minE;
+  return diff > 0 ? diff / 60 : 0;
+}
+
+function onDataRegMotoboy() {
+  var data = document.getElementById('regmotoboy-data').value;
+  var dia  = _getDiaSemanaReg(data);
+  document.getElementById('regmotoboy-dia').value = dia.nome;
+  calcRegMotoboy();
+}
+
+function calcRegMotoboy() {
+  var data   = document.getElementById('regmotoboy-data').value;
+  var entrada= document.getElementById('regmotoboy-entrada').value;
+  var saida  = document.getElementById('regmotoboy-saida').value;
+  var dia    = _getDiaSemanaReg(data);
+  var horas  = _calcHorasReg(entrada, saida);
+  var vlHora = _getValorHoraReg(data, dia.id);
+  var diaria = horas * vlHora;
+  document.getElementById('regmotoboy-horas').value  = horas  > 0 ? fmtValor(horas)  : '';
+  document.getElementById('regmotoboy-vlhora').value = vlHora > 0 ? fmtValor(vlHora) : '';
+  document.getElementById('regmotoboy-diaria').value = diaria > 0 ? fmtValor(diaria) : '';
+}
+
+function _popularMotoboyReg() {
+  var ccIds = db.get('centros')
+    .filter(function(c){ return c.descricao && c.descricao.toLowerCase().indexOf('motoboy') >= 0; })
+    .map(function(c){ return c.id; });
+  var lista = db.get('fornecedores').filter(function(f){
+    return f.ativo != 0 && (f.tipo === 'Motoboy' || (f.centro && ccIds.indexOf(Number(f.centro)) >= 0));
+  });
+  var sel = document.getElementById('regmotoboy-motoboy');
+  sel.innerHTML = '<option value="">— Selecione —</option>'
+    + lista.map(function(f){ return '<option value="'+f.id+'">'+f.nome+'</option>'; }).join('');
+}
+
+function openRegistroMotoboy(id) {
+  _popularMotoboyReg();
+  if (id) {
+    var r = db.get('regmotoboy').find(function(x){ return x.id === id; });
+    if (!r) return;
+    document.getElementById('regmotoboy-edit-id').value     = id;
+    document.getElementById('modal-regmotoboy-title').textContent = '🕐 Editar Registro Motoboy';
+    document.getElementById('regmotoboy-data').value        = r.data    || '';
+    document.getElementById('regmotoboy-dia').value         = r.dia     || '';
+    document.getElementById('regmotoboy-motoboy').value     = r.motoboy || '';
+    document.getElementById('regmotoboy-entrada').value     = r.entrada || '';
+    document.getElementById('regmotoboy-saida').value       = r.saida   || '23:30';
+    document.getElementById('regmotoboy-horas').value       = r.horas   ? fmtValor(r.horas)  : '';
+    document.getElementById('regmotoboy-vlhora').value      = r.vlHora  ? fmtValor(r.vlHora) : '';
+    document.getElementById('regmotoboy-diaria').value      = r.diaria  ? fmtValor(r.diaria) : '';
+    document.getElementById('regmotoboy-status').value      = r.status  || 'Em aberto';
+  } else {
+    var agora = new Date();
+    var hh = String(agora.getHours()).padStart(2,'0');
+    var mm = String(agora.getMinutes()).padStart(2,'0');
+    var hoje = agora.toISOString().slice(0,10);
+    document.getElementById('regmotoboy-edit-id').value     = '';
+    document.getElementById('modal-regmotoboy-title').textContent = '🕐 Novo Registro Motoboy';
+    document.getElementById('regmotoboy-data').value        = hoje;
+    document.getElementById('regmotoboy-dia').value         = _getDiaSemanaReg(hoje).nome;
+    document.getElementById('regmotoboy-motoboy').value     = '';
+    document.getElementById('regmotoboy-entrada').value     = hh+':'+mm;
+    document.getElementById('regmotoboy-saida').value       = '23:30';
+    document.getElementById('regmotoboy-horas').value       = '';
+    document.getElementById('regmotoboy-vlhora').value      = '';
+    document.getElementById('regmotoboy-diaria').value      = '';
+    document.getElementById('regmotoboy-status').value      = 'Em aberto';
+    calcRegMotoboy();
+  }
+  openModal('modal-regmotoboy');
+}
+
+function salvarRegistroMotoboy() {
+  var data    = document.getElementById('regmotoboy-data').value;
+  var motoboy = document.getElementById('regmotoboy-motoboy').value;
+  if (!data || !motoboy) { alert('Informe a data e o motoboy.'); return; }
+  var dia     = document.getElementById('regmotoboy-dia').value;
+  var entrada = document.getElementById('regmotoboy-entrada').value;
+  var saida   = document.getElementById('regmotoboy-saida').value;
+  var horas   = parseBRVal(document.getElementById('regmotoboy-horas').value);
+  var vlHora  = parseBRVal(document.getElementById('regmotoboy-vlhora').value);
+  var diaria  = parseBRVal(document.getElementById('regmotoboy-diaria').value);
+  var status  = document.getElementById('regmotoboy-status').value;
+  var editId  = document.getElementById('regmotoboy-edit-id').value;
+  var list    = db.get('regmotoboy').slice();
+  var rec     = {
+    id: editId ? Number(editId) : db.nextId(list),
+    data: data, dia: dia, motoboy: Number(motoboy)||motoboy,
+    entrada: entrada, saida: saida, horas: horas,
+    vlHora: vlHora, diaria: diaria, status: status
+  };
+  if (editId) {
+    var idx = list.findIndex(function(x){ return x.id == editId; });
+    if (idx >= 0) list[idx] = rec; else list.push(rec);
+  } else { list.push(rec); }
+  db.set('regmotoboy', list);
+  closeModal('modal-regmotoboy');
+  renderRegistroMotoboy();
+}
+
+function excluirRegistroMotoboy(id) {
+  if (!confirm('Excluir este registro?')) return;
+  db.set('regmotoboy', db.get('regmotoboy').filter(function(x){ return x.id !== id; }));
+  renderRegistroMotoboy();
+}
+
+function renderRegistroMotoboy() {
+  var list  = db.get('regmotoboy').slice().sort(function(a,b){ return b.data.localeCompare(a.data)||b.entrada.localeCompare(a.entrada); });
+  var forn  = db.get('fornecedores');
+  var nomeMoto = function(id){ var f=forn.find(function(x){return x.id==id;}); return f?f.nome:'—'; };
+  var fmtD  = function(d){ return d ? d.split('-').reverse().join('/') : '—'; };
+  var stBadge = function(s){ return s==='Pago'
+    ? '<span class="badge b-green">Pago</span>'
+    : '<span class="badge b-yellow">Em aberto</span>'; };
+  document.getElementById('tbl-regmotoboy').innerHTML = list.length
+    ? list.map(function(r){ return '<tr>'
+        +'<td class="nowrap">'+fmtD(r.data)+'</td>'
+        +'<td>'+r.dia+'</td>'
+        +'<td class="fw7">'+nomeMoto(r.motoboy)+'</td>'
+        +'<td class="nowrap">'+(r.entrada||'—')+'</td>'
+        +'<td class="nowrap">'+(r.saida||'—')+'</td>'
+        +'<td class="nowrap">'+fmtValor(r.horas||0)+'h</td>'
+        +'<td class="nowrap">'+fmtValor(r.vlHora||0)+'</td>'
+        +'<td class="nowrap fw7">'+fmtValor(r.diaria||0)+'</td>'
+        +'<td>'+stBadge(r.status)+'</td>'
+        +'<td class="nowrap">'
+          +'<button class="btn btn-ghost btn-sm" onclick="openRegistroMotoboy('+r.id+')">✏️</button> '
+          +'<button class="btn btn-danger btn-sm" onclick="excluirRegistroMotoboy('+r.id+')">🗑</button>'
+        +'</td>'
+      +'</tr>'; }).join('')
+    : '<tr><td colspan="10" class="tbl-empty">Nenhum registro cadastrado.</td></tr>';
+}
+
+// ============================================================
 // CUSTO SAÍDA MOTOBOY
 // ============================================================
 var _diasSemana = [
@@ -3029,6 +3277,40 @@ function renderAberturaCaixa() {
   </div>
 </div>
 
+
+<!-- REGISTRO CHEGADA/SAÍDA MOTOBOY -->
+<div class="modal-overlay" id="modal-regmotoboy">
+  <div class="modal" style="width:560px">
+    <div class="modal-hd">
+      <h3 id="modal-regmotoboy-title">🕐 Novo Registro Motoboy</h3>
+      <button class="modal-close" onclick="closeModal('modal-regmotoboy')">✕</button>
+    </div>
+    <div class="modal-body">
+      <input type="hidden" id="regmotoboy-edit-id">
+      <div class="form-row cols2">
+        <div class="fg"><label class="field-req">Data</label><input id="regmotoboy-data" type="date" onchange="onDataRegMotoboy()"></div>
+        <div class="fg"><label>Dia da Semana</label><input id="regmotoboy-dia" type="text" readonly style="background:#f4f4f8;font-weight:600"></div>
+      </div>
+      <div class="form-row cols1">
+        <div class="fg"><label class="field-req">Motoboy</label><select id="regmotoboy-motoboy"><option value="">— Selecione —</option></select></div>
+      </div>
+      <div class="form-row cols3">
+        <div class="fg"><label>Hora Entrada</label><input id="regmotoboy-entrada" type="time" onchange="calcRegMotoboy()"></div>
+        <div class="fg"><label>Hora Saída</label><input id="regmotoboy-saida" type="time" onchange="calcRegMotoboy()"></div>
+        <div class="fg"><label>Horas</label><input id="regmotoboy-horas" type="text" readonly placeholder="0,00" style="background:#f4f4f8;font-weight:600"></div>
+      </div>
+      <div class="form-row cols3">
+        <div class="fg"><label>Valor da Hora (R$)</label><input id="regmotoboy-vlhora" type="text" readonly placeholder="0,00" style="background:#f4f4f8;font-weight:600"></div>
+        <div class="fg"><label>Diária (R$)</label><input id="regmotoboy-diaria" type="text" readonly placeholder="0,00" style="background:#f4f4f8;font-weight:700;color:#e05c1a"></div>
+        <div class="fg"><label>Status</label><select id="regmotoboy-status"><option value="Em aberto">Em aberto</option><option value="Pago">Pago</option></select></div>
+      </div>
+    </div>
+    <div class="modal-ft">
+      <button class="btn btn-ghost" onclick="closeModal('modal-regmotoboy')">Cancelar</button>
+      <button class="btn btn-primary" onclick="salvarRegistroMotoboy()">💾 Salvar</button>
+    </div>
+  </div>
+</div>
 
 <!-- CUSTO SAÍDA MOTOBOY -->
 <div class="modal-overlay" id="modal-customotob">
