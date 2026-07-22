@@ -3202,7 +3202,7 @@ function renderAberturaCaixa() {
 
 <!-- REGISTRO CHEGADA/SAÍDA MOTOBOY -->
 <div class="modal-overlay" id="modal-regmotoboy">
-  <div class="modal" style="width:560px">
+  <div class="modal" style="width:min(640px,96vw);max-height:92vh;overflow-y:auto">
     <div class="modal-hd">
       <h3 id="modal-regmotoboy-title">🕐 Novo Registro Motoboy</h3>
       <button class="modal-close" onclick="closeModal('modal-regmotoboy')">✕</button>
@@ -3228,10 +3228,12 @@ function renderAberturaCaixa() {
       </div>
       <div style="margin-top:14px;padding:12px 14px;background:#f4f4f8;border-radius:8px;border:1px solid #e8e8f0">
         <p style="font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:.6px;color:#e05c1a;margin:0 0 10px">🛵 Entregas do dia (Lançamento de Pedidos)</p>
-        <div class="form-row cols3">
+        <div class="form-row cols2">
           <div class="fg"><label>Qtd. Entregas</label><input id="regmotoboy-qtdentregas" type="text" readonly placeholder="0" style="background:#fff;font-weight:700"></div>
           <div class="fg"><label>Vl. Total Entregas (R$)</label><input id="regmotoboy-vlentregas" type="text" readonly placeholder="0,00" style="background:#fff;font-weight:700"></div>
-          <div class="fg"><label>Total Geral (R$)</label><input id="regmotoboy-total" type="text" readonly placeholder="0,00" style="background:#fff;font-weight:700;color:#e05c1a"></div>
+        </div>
+        <div class="form-row cols1">
+          <div class="fg"><label>Total Geral — Diária + Entregas (R$)</label><input id="regmotoboy-total" type="text" readonly placeholder="0,00" style="background:#fff;font-weight:700;color:#e05c1a;font-size:15px"></div>
         </div>
       </div>
     </div>
