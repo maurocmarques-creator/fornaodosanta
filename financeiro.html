@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="pt-BR">
 <head>
 <meta charset="UTF-8">
@@ -95,6 +95,15 @@ tbody tr:hover td{background:#fafafe}
 .fg .char-count{font-size:10px;color:#bbb;text-align:right;margin-top:2px}
 .field-req::after{content:'*';color:#e03020;margin-left:2px}
 .form-divider{font-size:11px;font-weight:700;color:#aaa;text-transform:uppercase;letter-spacing:.8px;padding:10px 0 6px;border-bottom:1px solid #f0f0f8;margin-bottom:14px}
+/* Compact overrides for Lançamento modal */
+#modal-lancamento .modal-body{padding:10px 16px}
+#modal-lancamento .form-divider{padding:4px 0 3px;margin-bottom:7px}
+#modal-lancamento .form-row{margin-bottom:7px}
+#modal-lancamento .fg{gap:2px}
+#modal-lancamento .fg input,#modal-lancamento .fg select,#modal-lancamento .fg textarea{padding:6px 10px;font-size:12.5px}
+#modal-lancamento .fg textarea{min-height:46px}
+#modal-lancamento .fg label{font-size:10.5px}
+#modal-lancamento .fg .hint,#modal-lancamento .fg .char-count{font-size:9.5px;margin-top:1px}
 
 /* SEARCHABLE SELECT */
 .ss-wrap{position:relative}
@@ -277,6 +286,10 @@ tbody tr:hover td{background:#fafafe}
     <div class="sb-item" id="nav-aberturacaixa" onclick="nav('aberturacaixa',this)"><span class="ic">💰</span> Abertura de caixa</div>
     <div class="sb-item" id="nav-fechamentocaixa" onclick="nav('fechamentocaixa',this)"><span class="ic">🔒</span> Fechamento de caixa</div>
     <div class="sb-item" id="nav-regmotoboy" onclick="nav('regmotoboy',this)"><span class="ic">🕐</span> Registro Motoboy</div>
+  </div>
+  <div style="margin-top:auto;padding:12px 16px 14px;border-top:1px solid #2c2c42;font-size:10px;color:#4a4a70;text-align:center;line-height:1.6">
+    <div style="color:#6060a0;font-size:9px;text-transform:uppercase;letter-spacing:.6px;margin-bottom:2px">Última atualização</div>
+    <div id="app-buildts" style="color:#8080c0;font-size:11px;font-weight:600">⟳ 21/07/2026 00:00</div>
   </div>
 </nav>
 
