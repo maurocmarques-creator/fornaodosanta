@@ -306,7 +306,7 @@ tbody tr:hover td{background:#fafafe}
     <div class="sb-item" id="nav-centros" onclick="nav('centros',this)"><span class="ic">🏷️</span> Centro de Custo</div>
     <div class="sb-item" id="nav-formas" onclick="nav('formas',this)"><span class="ic">💳</span> Formas de Pagamento</div>
     <div class="sb-item" id="nav-customotob" onclick="nav('customotob',this)"><span class="ic">🛵</span> Custo saída Motoboy</div>
-    <div class="sb-item" id="nav-usuarios" onclick="nav('usuarios',this)" style="display:none"><span class="ic">🔐</span> Controle de Acesso</div>
+    <div class="sb-item" id="nav-usuarios" onclick="nav('usuarios',this)" style="display:none"><span class="ic">🔐</span> Controle de Acesso <span class="sb-badge" id="badge-usuarios" style="display:none">0</span></div>
   </div>
   <div class="sb-group">
     <div class="sb-group-label">Lançamentos</div>
@@ -338,7 +338,7 @@ tbody tr:hover td{background:#fafafe}
     </div>
     <div style="padding:2px 14px 8px;text-align:center;line-height:1.4">
       <div style="color:#6060a0;font-size:8.5px;text-transform:uppercase;letter-spacing:.6px;margin-bottom:1px">Última atualização</div>
-      <div id="app-buildts" style="color:#8080c0;font-size:10.5px;font-weight:600">v. 21/07/2026 23:55</div>
+      <div id="app-buildts" style="color:#8080c0;font-size:10.5px;font-weight:600">v. 22/07/2026 00:07</div>
     </div>
   </div>
 </nav>
@@ -968,6 +968,28 @@ tbody tr:hover td{background:#fafafe}
   </div>
 </div>
 
+<!-- ========== MODAL APROVAÇÃO ========== -->
+<div class="modal-overlay" id="modal-aprovacao" style="z-index:10001">
+  <div class="modal" style="width:min(440px,96vw)">
+    <div class="modal-hd"><h3>✅ Acesso Aprovado</h3><button class="modal-close" onclick="closeModal('modal-aprovacao')">✕</button></div>
+    <div class="modal-body">
+      <p style="font-size:13px;margin-bottom:16px">Usuário <b id="aprov-nome-label"></b> criado com sucesso.</p>
+      <div style="background:#f4f9ff;border:1.5px solid #b8d8f8;border-radius:10px;padding:14px 16px;margin-bottom:16px">
+        <div style="font-size:10px;font-weight:700;color:#4a80c0;text-transform:uppercase;margin-bottom:8px">Senha temporária gerada</div>
+        <div style="display:flex;align-items:center;gap:10px">
+          <span id="aprov-senha-label" style="font-size:20px;font-weight:800;font-family:monospace;letter-spacing:2px;color:#1c1c2e"></span>
+          <button onclick="copiarSenhaAprov()" style="background:#4a80c0;color:#fff;border:none;border-radius:6px;padding:5px 10px;font-size:11px;cursor:pointer">📋 Copiar</button>
+        </div>
+      </div>
+      <p style="font-size:12.5px;color:#666">Clique abaixo para abrir seu e-mail já endereçado ao usuário com a senha preenchida. Após enviar, o usuário deverá trocar a senha no primeiro acesso.</p>
+    </div>
+    <div class="modal-ft">
+      <button class="btn btn-ghost" onclick="closeModal('modal-aprovacao')">Fechar</button>
+      <button class="btn btn-primary" id="aprov-email-btn" onclick="enviarEmailAprovacao()">📧 Abrir e-mail com a senha</button>
+    </div>
+  </div>
+</div>
+
 <!-- ========== MODAL SOLICITAR ACESSO ========== -->
 <div class="modal-overlay" id="modal-solicitar" style="z-index:10001">
   <div class="modal" style="width:min(400px,96vw)">
@@ -1278,16 +1300,14 @@ function temAcesso(screen) {
 
 function atualizarSidebar() {
   var allScreens = ['bancos','fornecedores','centros','formas','customotob','receber','pagar','fluxo','conciliacao','centrocusto','dre','pedidos','aberturacaixa','fechamentocaixa','regmotoboy'];
-  // Mostrar todos os grupos primeiro
   document.querySelectorAll('.sb-group').forEach(function(g){ g.style.display = ''; });
-  // Mostrar/ocultar itens por permissão
   allScreens.forEach(function(s) {
     var el = document.getElementById('nav-' + s);
     if (el) el.style.display = temAcesso(s) ? '' : 'none';
   });
-  // Controle de Acesso só para admin
   var navUsu = document.getElementById('nav-usuarios');
   if (navUsu) navUsu.style.display = (_sessao && _sessao.perfil === 'admin') ? '' : 'none';
+  atualizarBadgeSolicitacoes();
 }
 
 function mostrarTopbarUser() {
@@ -3550,30 +3570,52 @@ function _gerarSenha() {
   return senha;
 }
 
+// Abre mailto de forma confiável (evita bloqueio de popup)
+function _abrirMailto(href) {
+  var a = document.createElement('a');
+  a.href = href;
+  document.body.appendChild(a);
+  a.click();
+  setTimeout(function(){ document.body.removeChild(a); }, 200);
+}
+
+// Atualiza badge de solicitações pendentes no menu
+function atualizarBadgeSolicitacoes() {
+  var n = db.get('solicitacoes').filter(function(s){ return s.status === 'pendente'; }).length;
+  var b = document.getElementById('badge-usuarios');
+  if (b) { b.textContent = n; b.style.display = n > 0 ? '' : 'none'; }
+}
+
 function enviarSolicitacao() {
   var nome  = (document.getElementById('solic-nome').value || '').trim();
   var email = (document.getElementById('solic-email').value || '').trim().toLowerCase();
   if (!nome || !email) { alert('Preencha nome e e-mail.'); return; }
-  // Verificar se já existe usuário ou solicitação com esse e-mail
   var jaUsuario = db.get('usuarios').find(function(u){ return u.email.toLowerCase() === email; });
   if (jaUsuario) { alert('Este e-mail já possui acesso cadastrado.'); return; }
-  var jasSolic = db.get('solicitacoes').find(function(s){ return s.email.toLowerCase() === email && s.status === 'pendente'; });
-  if (jasSolic) { alert('Já existe uma solicitação pendente com este e-mail.'); return; }
-  // Salvar solicitação
+  var jaSolic = db.get('solicitacoes').find(function(s){ return s.email.toLowerCase() === email && s.status === 'pendente'; });
+  if (jaSolic) { alert('Já existe uma solicitação pendente com este e-mail.'); return; }
   var list = db.get('solicitacoes').slice();
   var hoje = new Date();
   var dataStr = String(hoje.getDate()).padStart(2,'0') + '/' + String(hoje.getMonth()+1).padStart(2,'0') + '/' + hoje.getFullYear() + ' ' + String(hoje.getHours()).padStart(2,'0') + ':' + String(hoje.getMinutes()).padStart(2,'0');
   list.push({ id: db.nextId(list), nome: nome, email: email, data: dataStr, status: 'pendente' });
   db.set('solicitacoes', list);
-  // Abrir e-mail para o admin
-  var assunto = encodeURIComponent('PizzaOS — Solicitação de acesso: ' + nome);
-  var corpo   = encodeURIComponent('Nova solicitação de acesso ao PizzaOS Financeiro:\n\nNome: ' + nome + '\nE-mail: ' + email + '\nData: ' + dataStr + '\n\nAcesse o painel de Controle de Acesso para aprovar ou rejeitar.');
-  window.open('mailto:mauro.cesar@portoex.com.br?subject=' + assunto + '&body=' + corpo, '_blank');
+  atualizarBadgeSolicitacoes();
+  // Notificar admin por e-mail
+  var assunto = encodeURIComponent('[PizzaOS] Nova solicitação de acesso: ' + nome);
+  var corpo   = encodeURIComponent('Nova solicitação de acesso ao PizzaOS Financeiro:\n\nNome: ' + nome + '\nE-mail: ' + email + '\nData: ' + dataStr + '\n\nAcesse o Controle de Acesso para aprovar ou rejeitar:\n' + location.href);
+  _abrirMailto('mailto:mauro.cesar@portoex.com.br?subject=' + assunto + '&body=' + corpo);
   closeModal('modal-solicitar');
   document.getElementById('solic-nome').value  = '';
   document.getElementById('solic-email').value = '';
-  alert('✅ Solicitação enviada!\nVocê receberá a senha por e-mail após aprovação.');
+  alert('✅ Solicitação enviada!\nO administrador foi notificado e enviará sua senha em breve.');
 }
+
+var _aprov_mailto = ''; // guarda o mailto para o botão do modal
+function copiarSenhaAprov() {
+  var senha = document.getElementById('aprov-senha-label').textContent;
+  navigator.clipboard.writeText(senha).then(function(){ alert('Senha copiada!'); }).catch(function(){ alert('Senha: ' + senha); });
+}
+function enviarEmailAprovacao() { _abrirMailto(_aprov_mailto); }
 
 function aprovarSolicitacao(id) {
   var list  = db.get('solicitacoes').slice();
@@ -3584,15 +3626,19 @@ function aprovarSolicitacao(id) {
   var users = db.get('usuarios').slice();
   users.push({ id: db.nextId(users), nome: solic.nome, email: solic.email, senha: senha, perfil: 'user', ativo: 1, permissoes: [], primeiroAcesso: 1 });
   db.set('usuarios', users);
-  // Marcar solicitação como aprovada
+  // Marcar aprovada
   var idx = list.findIndex(function(s){ return s.id === id; });
   list[idx] = Object.assign({}, list[idx], { status: 'aprovada' });
   db.set('solicitacoes', list);
-  // Abrir e-mail com a senha para enviar ao usuário
-  var assunto = encodeURIComponent('PizzaOS — Seu acesso foi aprovado');
-  var corpo   = encodeURIComponent('Olá ' + solic.nome + ',\n\nSeu acesso ao PizzaOS Financeiro foi aprovado!\n\nE-mail: ' + solic.email + '\nSenha temporária: ' + senha + '\n\nAo fazer o primeiro acesso, será solicitada a troca de senha.\n\nAcesse: ' + location.href);
-  window.open('mailto:' + solic.email + '?subject=' + assunto + '&body=' + corpo, '_blank');
+  atualizarBadgeSolicitacoes();
   renderUsuarios();
+  // Preparar modal de aprovação
+  document.getElementById('aprov-nome-label').textContent  = solic.nome;
+  document.getElementById('aprov-senha-label').textContent = senha;
+  var assunto = encodeURIComponent('[PizzaOS] Seu acesso foi aprovado');
+  var corpo   = encodeURIComponent('Olá ' + solic.nome + ',\n\nSeu acesso ao PizzaOS Financeiro foi aprovado!\n\nE-mail de acesso: ' + solic.email + '\nSenha temporária: ' + senha + '\n\nNo primeiro acesso você será solicitado a criar uma nova senha.\n\nAcesse aqui: ' + location.href);
+  _aprov_mailto = 'mailto:' + solic.email + '?subject=' + assunto + '&body=' + corpo;
+  openModal('modal-aprovacao');
 }
 
 function rejeitarSolicitacao(id) {
@@ -4014,6 +4060,7 @@ function renderAberturaCaixa() {
 
 </body>
 </html>
+
 
 
 
