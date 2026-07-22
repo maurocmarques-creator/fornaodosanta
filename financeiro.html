@@ -286,6 +286,9 @@ tbody tr:hover td{background:#fafafe}
       <input id="login-senha" type="password" placeholder="••••••••" onkeydown="if(event.key==='Enter')fazerLogin()">
     </div>
     <button class="btn-login" onclick="fazerLogin()">Entrar</button>
+    <div style="text-align:center;margin-top:16px">
+      <a href="#" onclick="openModal('modal-solicitar');return false" style="font-size:12px;color:#aaa;text-decoration:none;border-bottom:1px dashed #ccc">Não tem acesso? Solicitar cadastro</a>
+    </div>
   </div>
 </div>
 
@@ -334,7 +337,7 @@ tbody tr:hover td{background:#fafafe}
     </div>
     <div style="padding:2px 14px 8px;text-align:center;line-height:1.4">
       <div style="color:#6060a0;font-size:8.5px;text-transform:uppercase;letter-spacing:.6px;margin-bottom:1px">Última atualização</div>
-      <div id="app-buildts" style="color:#8080c0;font-size:10.5px;font-weight:600">v. 21/07/2026 23:44</div>
+      <div id="app-buildts" style="color:#8080c0;font-size:10.5px;font-weight:600">v. 21/07/2026 23:52</div>
     </div>
   </div>
 </nav>
@@ -709,7 +712,7 @@ tbody tr:hover td{background:#fafafe}
       </div>
     </div>
     <div class="screen" id="s-usuarios">
-      <div class="panel">
+      <div class="panel" style="margin-bottom:16px">
         <div class="panel-hd"><h2>Controle de Acesso — Usuários</h2></div>
         <div class="panel-body nop tbl-wrap">
           <table>
@@ -718,6 +721,12 @@ tbody tr:hover td{background:#fafafe}
             </tr></thead>
             <tbody id="tbody-usuarios"></tbody>
           </table>
+        </div>
+      </div>
+      <div class="panel">
+        <div class="panel-hd"><h2>🔔 Solicitações de Acesso Pendentes</h2></div>
+        <div class="panel-body">
+          <div id="sec-solicitacoes"><div style="color:#aaa;font-size:13px">Nenhuma solicitação pendente.</div></div>
         </div>
       </div>
     </div>
@@ -958,6 +967,58 @@ tbody tr:hover td{background:#fafafe}
   </div>
 </div>
 
+<!-- ========== MODAL SOLICITAR ACESSO ========== -->
+<div class="modal-overlay" id="modal-solicitar">
+  <div class="modal" style="width:min(400px,96vw)">
+    <div class="modal-hd"><h3>📋 Solicitar Acesso</h3><button class="modal-close" onclick="closeModal('modal-solicitar')">✕</button></div>
+    <div class="modal-body">
+      <p style="font-size:13px;color:#666;margin-bottom:16px">Preencha seus dados. O administrador receberá sua solicitação e enviará a senha por e-mail.</p>
+      <div class="form-row">
+        <div class="fg">
+          <label class="field-req">Nome completo</label>
+          <input id="solic-nome" placeholder="Seu nome">
+        </div>
+      </div>
+      <div class="form-row">
+        <div class="fg">
+          <label class="field-req">E-mail</label>
+          <input id="solic-email" type="email" placeholder="seu@email.com">
+        </div>
+      </div>
+    </div>
+    <div class="modal-ft">
+      <button class="btn btn-ghost" onclick="closeModal('modal-solicitar')">Cancelar</button>
+      <button class="btn btn-primary" onclick="enviarSolicitacao()">📨 Enviar solicitação</button>
+    </div>
+  </div>
+</div>
+
+<!-- ========== MODAL PRIMEIRO ACESSO — TROCAR SENHA ========== -->
+<div class="modal-overlay" id="modal-trocar-senha">
+  <div class="modal" style="width:min(380px,96vw)">
+    <div class="modal-hd"><h3>🔑 Defina sua nova senha</h3></div>
+    <div class="modal-body">
+      <p style="font-size:13px;color:#666;margin-bottom:16px">Este é seu primeiro acesso. Por segurança, escolha uma nova senha.</p>
+      <div class="form-row">
+        <div class="fg">
+          <label class="field-req">Nova senha</label>
+          <input id="nova-senha" type="password" placeholder="Mínimo 4 caracteres">
+        </div>
+      </div>
+      <div class="form-row">
+        <div class="fg">
+          <label class="field-req">Confirmar senha</label>
+          <input id="nova-senha-conf" type="password" placeholder="Repita a senha" onkeydown="if(event.key==='Enter')confirmarTrocaSenha()">
+        </div>
+      </div>
+      <div id="trocar-senha-err" style="display:none;color:#c03030;font-size:12.5px;margin-top:8px"></div>
+    </div>
+    <div class="modal-ft">
+      <button class="btn btn-primary" onclick="confirmarTrocaSenha()">✅ Confirmar</button>
+    </div>
+  </div>
+</div>
+
 <!-- ========== MODAL USUÁRIO ========== -->
 <div class="modal-overlay" id="modal-usuario">
   <div class="modal" style="width:min(560px,96vw)">
@@ -1087,8 +1148,8 @@ try { const c = localStorage.getItem('__fb_cfg'); if(c) FIREBASE_CONFIG = JSON.p
 // ============================================================
 // STORAGE — cache em memória + Firebase ou localStorage
 // ============================================================
-const K = { bancos:'fin_bancos', fornecedores:'fin_forn', centros:'fin_cc', receber:'fin_receber', pagar:'fin_pagar', formas:'fin_formas', pedidos:'fin_pedidos', aberturacaixa:'fin_aberturacaixa', customotob:'fin_customotob', regmotoboy:'fin_regmotoboy', usuarios:'fin_usuarios' };
-let _cache = { bancos:[], fornecedores:[], centros:[], receber:[], pagar:[], formas:[], pedidos:[], aberturacaixa:[], customotob:[], regmotoboy:[], usuarios:[] };
+const K = { bancos:'fin_bancos', fornecedores:'fin_forn', centros:'fin_cc', receber:'fin_receber', pagar:'fin_pagar', formas:'fin_formas', pedidos:'fin_pedidos', aberturacaixa:'fin_aberturacaixa', customotob:'fin_customotob', regmotoboy:'fin_regmotoboy', usuarios:'fin_usuarios', solicitacoes:'fin_solicitacoes' };
+let _cache = { bancos:[], fornecedores:[], centros:[], receber:[], pagar:[], formas:[], pedidos:[], aberturacaixa:[], customotob:[], regmotoboy:[], usuarios:[], solicitacoes:[] };
 let _fsdb = null; // Firestore instance
 let _fbReady = false;
 
@@ -1254,9 +1315,17 @@ function fazerLogin() {
     document.getElementById('login-senha').value = '';
     return;
   }
-  _sessao = { id: user.id, nome: user.nome, email: user.email, perfil: user.perfil, permissoes: user.permissoes || [] };
+  _sessao = { id: user.id, nome: user.nome, email: user.email, perfil: user.perfil, permissoes: user.permissoes || [], primeiroAcesso: user.primeiroAcesso || 0 };
   sessionStorage.setItem('pizzaos_sess', JSON.stringify(_sessao));
   document.getElementById('login-overlay').classList.remove('open');
+  // Primeiro acesso: forçar troca de senha antes de mostrar o app
+  if (user.primeiroAcesso) {
+    document.getElementById('nova-senha').value      = '';
+    document.getElementById('nova-senha-conf').value = '';
+    document.getElementById('trocar-senha-err').style.display = 'none';
+    openModal('modal-trocar-senha');
+    return;
+  }
   mostrarTopbarUser();
   atualizarSidebar();
   // Navegar para a primeira tela disponível
@@ -3469,6 +3538,96 @@ function excluirCustoMotoboy(id) {
 }
 
 // ============================================================
+// SOLICITAÇÕES DE ACESSO
+// ============================================================
+function _gerarSenha() {
+  var chars = 'abcdefghjkmnpqrstuvwxyzABCDEFGHJKMNPQRSTUVWXYZ23456789';
+  var senha = '';
+  for (var i = 0; i < 8; i++) senha += chars[Math.floor(Math.random() * chars.length)];
+  return senha;
+}
+
+function enviarSolicitacao() {
+  var nome  = (document.getElementById('solic-nome').value || '').trim();
+  var email = (document.getElementById('solic-email').value || '').trim().toLowerCase();
+  if (!nome || !email) { alert('Preencha nome e e-mail.'); return; }
+  // Verificar se já existe usuário ou solicitação com esse e-mail
+  var jaUsuario = db.get('usuarios').find(function(u){ return u.email.toLowerCase() === email; });
+  if (jaUsuario) { alert('Este e-mail já possui acesso cadastrado.'); return; }
+  var jasSolic = db.get('solicitacoes').find(function(s){ return s.email.toLowerCase() === email && s.status === 'pendente'; });
+  if (jasSolic) { alert('Já existe uma solicitação pendente com este e-mail.'); return; }
+  // Salvar solicitação
+  var list = db.get('solicitacoes').slice();
+  var hoje = new Date();
+  var dataStr = String(hoje.getDate()).padStart(2,'0') + '/' + String(hoje.getMonth()+1).padStart(2,'0') + '/' + hoje.getFullYear() + ' ' + String(hoje.getHours()).padStart(2,'0') + ':' + String(hoje.getMinutes()).padStart(2,'0');
+  list.push({ id: db.nextId(list), nome: nome, email: email, data: dataStr, status: 'pendente' });
+  db.set('solicitacoes', list);
+  // Abrir e-mail para o admin
+  var assunto = encodeURIComponent('PizzaOS — Solicitação de acesso: ' + nome);
+  var corpo   = encodeURIComponent('Nova solicitação de acesso ao PizzaOS Financeiro:\n\nNome: ' + nome + '\nE-mail: ' + email + '\nData: ' + dataStr + '\n\nAcesse o painel de Controle de Acesso para aprovar ou rejeitar.');
+  window.open('mailto:mauro.cesar@portoex.com.br?subject=' + assunto + '&body=' + corpo, '_blank');
+  closeModal('modal-solicitar');
+  document.getElementById('solic-nome').value  = '';
+  document.getElementById('solic-email').value = '';
+  alert('✅ Solicitação enviada!\nVocê receberá a senha por e-mail após aprovação.');
+}
+
+function aprovarSolicitacao(id) {
+  var list  = db.get('solicitacoes').slice();
+  var solic = list.find(function(s){ return s.id === id; });
+  if (!solic) return;
+  var senha = _gerarSenha();
+  // Criar usuário
+  var users = db.get('usuarios').slice();
+  users.push({ id: db.nextId(users), nome: solic.nome, email: solic.email, senha: senha, perfil: 'user', ativo: 1, permissoes: [], primeiroAcesso: 1 });
+  db.set('usuarios', users);
+  // Marcar solicitação como aprovada
+  var idx = list.findIndex(function(s){ return s.id === id; });
+  list[idx] = Object.assign({}, list[idx], { status: 'aprovada' });
+  db.set('solicitacoes', list);
+  // Abrir e-mail com a senha para enviar ao usuário
+  var assunto = encodeURIComponent('PizzaOS — Seu acesso foi aprovado');
+  var corpo   = encodeURIComponent('Olá ' + solic.nome + ',\n\nSeu acesso ao PizzaOS Financeiro foi aprovado!\n\nE-mail: ' + solic.email + '\nSenha temporária: ' + senha + '\n\nAo fazer o primeiro acesso, será solicitada a troca de senha.\n\nAcesse: ' + location.href);
+  window.open('mailto:' + solic.email + '?subject=' + assunto + '&body=' + corpo, '_blank');
+  renderUsuarios();
+}
+
+function rejeitarSolicitacao(id) {
+  if (!confirm('Rejeitar esta solicitação?')) return;
+  var list = db.get('solicitacoes').slice();
+  var idx  = list.findIndex(function(s){ return s.id === id; });
+  if (idx >= 0) list[idx] = Object.assign({}, list[idx], { status: 'rejeitada' });
+  db.set('solicitacoes', list);
+  renderUsuarios();
+}
+
+// ============================================================
+// TROCA DE SENHA (primeiro acesso)
+// ============================================================
+function confirmarTrocaSenha() {
+  var nova  = document.getElementById('nova-senha').value || '';
+  var conf  = document.getElementById('nova-senha-conf').value || '';
+  var errEl = document.getElementById('trocar-senha-err');
+  errEl.style.display = 'none';
+  if (nova.length < 4) { errEl.textContent = 'A senha deve ter pelo menos 4 caracteres.'; errEl.style.display = ''; return; }
+  if (nova !== conf)   { errEl.textContent = 'As senhas não conferem.'; errEl.style.display = ''; return; }
+  var users = db.get('usuarios').slice();
+  var idx   = users.findIndex(function(u){ return u.id === _sessao.id; });
+  if (idx >= 0) { users[idx].senha = nova; users[idx].primeiroAcesso = 0; }
+  db.set('usuarios', users);
+  _sessao.primeiroAcesso = 0;
+  sessionStorage.setItem('pizzaos_sess', JSON.stringify(_sessao));
+  closeModal('modal-trocar-senha');
+  document.getElementById('nova-senha').value      = '';
+  document.getElementById('nova-senha-conf').value = '';
+  mostrarTopbarUser();
+  atualizarSidebar();
+  var primeirasTelas = ['pedidos','receber','pagar','bancos','fornecedores','centros','formas'];
+  var ir = primeirasTelas.find(function(s){ return temAcesso(s); }) || 'bancos';
+  nav(ir, document.getElementById('nav-' + ir));
+}
+
+// ============================================================
 // CONTROLE DE ACESSO — USUÁRIOS
 // ============================================================
 function renderUsuarios() {
@@ -3476,6 +3635,7 @@ function renderUsuarios() {
     document.getElementById('tbody-usuarios').innerHTML = '<tr><td colspan="5" style="text-align:center;color:#aaa">Acesso negado.</td></tr>';
     return;
   }
+  // ---- Usuários ----
   var list = db.get('usuarios');
   var self = _sessao.id;
   var html = '';
@@ -3495,6 +3655,24 @@ function renderUsuarios() {
     });
   }
   document.getElementById('tbody-usuarios').innerHTML = html;
+
+  // ---- Solicitações pendentes ----
+  var solics = db.get('solicitacoes').filter(function(s){ return s.status === 'pendente'; });
+  var secEl  = document.getElementById('sec-solicitacoes');
+  if (!secEl) return;
+  if (!solics.length) {
+    secEl.innerHTML = '<div style="color:#aaa;font-size:13px;padding:12px 0">Nenhuma solicitação pendente.</div>';
+    return;
+  }
+  var sHtml = '<table style="width:100%;border-collapse:collapse"><thead><tr style="font-size:11px;color:#aaa;text-transform:uppercase"><th style="padding:8px 12px;text-align:left">Nome</th><th style="padding:8px 12px;text-align:left">E-mail</th><th style="padding:8px 12px;text-align:left">Data</th><th style="padding:8px 12px;text-align:center">Ações</th></tr></thead><tbody>';
+  solics.forEach(function(s) {
+    sHtml += '<tr style="border-top:1px solid #f0f0f8"><td style="padding:8px 12px;font-size:13px">' + s.nome + '</td><td style="padding:8px 12px;font-size:12px;color:#666">' + s.email + '</td><td style="padding:8px 12px;font-size:12px;color:#999">' + s.data + '</td><td style="padding:8px 12px;text-align:center">'
+      + '<button class="btn btn-sm btn-primary" onclick="aprovarSolicitacao(' + s.id + ')">✅ Aprovar</button> '
+      + '<button class="btn btn-sm btn-ghost" style="color:#c03030" onclick="rejeitarSolicitacao(' + s.id + ')">✕ Rejeitar</button>'
+      + '</td></tr>';
+  });
+  sHtml += '</tbody></table>';
+  secEl.innerHTML = sHtml;
 }
 
 function openUsuario(id) {
@@ -3833,6 +4011,7 @@ function renderAberturaCaixa() {
 
 </body>
 </html>
+
 
 
 
