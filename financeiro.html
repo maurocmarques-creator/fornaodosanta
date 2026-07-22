@@ -254,6 +254,7 @@ tbody tr:hover td{background:#fafafe}
     <div class="sb-item" onclick="nav('fornecedores',this)"><span class="ic">🏢</span> Fornecedores</div>
     <div class="sb-item" onclick="nav('centros',this)"><span class="ic">🏷️</span> Centro de Custo</div>
     <div class="sb-item" onclick="nav('formas',this)"><span class="ic">💳</span> Formas de Pagamento</div>
+    <div class="sb-item" onclick="nav('customotob',this)"><span class="ic">🛵</span> Custo saída Motoboy</div>
   </div>
   <div class="sb-group">
     <div class="sb-group-label">Lançamentos</div>
@@ -578,7 +579,44 @@ tbody tr:hover td{background:#fafafe}
       </div>
     </div>
 
-    <!-- ABERTURA DE CAIXA -->
+    <!-- CUSTO SAÍDA MOTOBOY -->
+<div class="modal-overlay" id="modal-customotob">
+  <div class="modal" style="width:520px">
+    <div class="modal-hd">
+      <h3 id="modal-customotob-title">🛵 Nova Vigência — Custo saída Motoboy</h3>
+      <button class="modal-close" onclick="closeModal('modal-customotob')">✕</button>
+    </div>
+    <div class="modal-body">
+      <input type="hidden" id="customotob-edit-id">
+      <div class="form-row cols2">
+        <div class="fg"><label class="field-req">Vigência Inicial</label><input id="customotob-ini" type="date"></div>
+        <div class="fg"><label class="field-req">Vigência Final</label><input id="customotob-fim" type="date"></div>
+      </div>
+      <p style="font-size:12px;font-weight:700;color:#555;margin:14px 0 8px;text-transform:uppercase;letter-spacing:.6px">Valor por dia da semana (R$)</p>
+      <div class="form-row cols2">
+        <div class="fg"><label>Segunda-feira</label><input id="customotob-seg" type="text" placeholder="0,00" oninput="maskValor(this)"></div>
+        <div class="fg"><label>Terça-feira</label><input id="customotob-ter" type="text" placeholder="0,00" oninput="maskValor(this)"></div>
+      </div>
+      <div class="form-row cols2">
+        <div class="fg"><label>Quarta-feira</label><input id="customotob-qua" type="text" placeholder="0,00" oninput="maskValor(this)"></div>
+        <div class="fg"><label>Quinta-feira</label><input id="customotob-qui" type="text" placeholder="0,00" oninput="maskValor(this)"></div>
+      </div>
+      <div class="form-row cols2">
+        <div class="fg"><label>Sexta-feira</label><input id="customotob-sex" type="text" placeholder="0,00" oninput="maskValor(this)"></div>
+        <div class="fg"><label>Sábado</label><input id="customotob-sab" type="text" placeholder="0,00" oninput="maskValor(this)"></div>
+      </div>
+      <div class="form-row cols1">
+        <div class="fg"><label>Domingo</label><input id="customotob-dom" type="text" placeholder="0,00" oninput="maskValor(this)"></div>
+      </div>
+    </div>
+    <div class="modal-ft">
+      <button class="btn btn-ghost" onclick="closeModal('modal-customotob')">Cancelar</button>
+      <button class="btn btn-primary" onclick="salvarCustoMotoboy()">💾 Salvar</button>
+    </div>
+  </div>
+</div>
+
+<!-- ABERTURA DE CAIXA -->
     <div class="screen" id="s-aberturacaixa">
       <div class="panel">
         <div class="panel-hd"><h2>Aberturas de caixa</h2></div>
@@ -605,6 +643,23 @@ tbody tr:hover td{background:#fafafe}
         </div>
         <div class="panel-body" id="fechamento-corpo">
           <p style="color:#aaa;text-align:center;padding:32px">Selecione uma data para exibir o fechamento.</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- CUSTO SAÍDA MOTOBOY -->
+    <div class="screen" id="s-customotob">
+      <div class="panel">
+        <div class="panel-hd"><h2>Custo saída Motoboy</h2></div>
+        <div class="panel-body nop tbl-wrap">
+          <table>
+            <thead><tr>
+              <th>Vigência Inicial</th><th>Vigência Final</th>
+              <th>Seg</th><th>Ter</th><th>Qua</th><th>Qui</th><th>Sex</th><th>Sáb</th><th>Dom</th>
+              <th style="width:90px"></th>
+            </tr></thead>
+            <tbody id="tbl-customotob"></tbody>
+          </table>
         </div>
       </div>
     </div>
@@ -902,8 +957,8 @@ try { const c = localStorage.getItem('__fb_cfg'); if(c) FIREBASE_CONFIG = JSON.p
 // ============================================================
 // STORAGE — cache em memória + Firebase ou localStorage
 // ============================================================
-const K = { bancos:'fin_bancos', fornecedores:'fin_forn', centros:'fin_cc', receber:'fin_receber', pagar:'fin_pagar', formas:'fin_formas', pedidos:'fin_pedidos', aberturacaixa:'fin_aberturacaixa' };
-let _cache = { bancos:[], fornecedores:[], centros:[], receber:[], pagar:[], formas:[], pedidos:[], aberturacaixa:[] };
+const K = { bancos:'fin_bancos', fornecedores:'fin_forn', centros:'fin_cc', receber:'fin_receber', pagar:'fin_pagar', formas:'fin_formas', pedidos:'fin_pedidos', aberturacaixa:'fin_aberturacaixa', customotob:'fin_customotob' };
+let _cache = { bancos:[], fornecedores:[], centros:[], receber:[], pagar:[], formas:[], pedidos:[], aberturacaixa:[], customotob:[] };
 let _fsdb = null; // Firestore instance
 let _fbReady = false;
 
@@ -1167,6 +1222,7 @@ const TITLES = {
   fornecedores: ['Fornecedores',             'Cadastros › Fornecedores',        '+ Novo Fornecedor', 'modal-fornecedor'],
   centros:      ['Centro de Custo',          'Cadastros › Centro de Custo',     '+ Novo Centro',     'modal-centro'],
   formas:       ['Formas de Pagamento',      'Cadastros › Formas de Pagamento', '+ Nova Forma',      'modal-forma'],
+  customotob:   ['Custo saída Motoboy',       'Cadastros › Custo saída Motoboy', '+ Nova Vigência',   'modal-customotob'],
   receber:      ['Contas a Receber',         'Lançamentos › A Receber',         '+ Novo lançamento', '__receber'],
   pagar:        ['Contas a Pagar',           'Lançamentos › A Pagar',           '+ Novo lançamento', '__pagar'],
   fluxo:        ['Fluxo de Caixa Projetado', 'Relatórios › Fluxo Projetado',    '', ''],
@@ -1204,7 +1260,7 @@ function topbarAction() {
 }
 
 function renderScreen(id) {
-  const map = {bancos:renderBancos,fornecedores:renderFornecedores,centros:renderCentros,formas:renderFormas,receber:renderReceber,pagar:renderPagar,fluxo:initFluxo,conciliacao:initConciliacao,centrocusto:initCentroCusto,dre:initDRE,pedidos:renderPedidos,aberturacaixa:renderAberturaCaixa,fechamentocaixa:renderFechamentoCaixa};
+  const map = {bancos:renderBancos,fornecedores:renderFornecedores,centros:renderCentros,formas:renderFormas,receber:renderReceber,pagar:renderPagar,fluxo:initFluxo,conciliacao:initConciliacao,centrocusto:initCentroCusto,dre:initDRE,pedidos:renderPedidos,aberturacaixa:renderAberturaCaixa,fechamentocaixa:renderFechamentoCaixa,customotob:renderCustoMotoboy};
   if (map[id]) map[id]();
 }
 
@@ -2806,6 +2862,80 @@ function renderFechamentoCaixa() {
 }
 
 // ============================================================
+// CUSTO SAÍDA MOTOBOY
+// ============================================================
+var _diasSemana = [
+  {id:'seg',label:'Seg'}, {id:'ter',label:'Ter'}, {id:'qua',label:'Qua'},
+  {id:'qui',label:'Qui'}, {id:'sex',label:'Sex'}, {id:'sab',label:'Sáb'}, {id:'dom',label:'Dom'}
+];
+
+function openCustoMotoboy(id) {
+  var dias = _diasSemana;
+  if (id) {
+    var r = db.get('customotob').find(function(x){ return x.id===id; });
+    if (!r) return;
+    document.getElementById('customotob-edit-id').value = id;
+    document.getElementById('modal-customotob-title').textContent = '🛵 Editar Vigência — Custo saída Motoboy';
+    document.getElementById('customotob-ini').value = r.ini || '';
+    document.getElementById('customotob-fim').value = r.fim || '';
+    dias.forEach(function(d){ document.getElementById('customotob-'+d.id).value = r[d.id] ? fmtValor(r[d.id]) : ''; });
+  } else {
+    document.getElementById('customotob-edit-id').value = '';
+    document.getElementById('modal-customotob-title').textContent = '🛵 Nova Vigência — Custo saída Motoboy';
+    document.getElementById('customotob-ini').value = '';
+    document.getElementById('customotob-fim').value = '';
+    dias.forEach(function(d){ document.getElementById('customotob-'+d.id).value = ''; });
+  }
+  openModal('modal-customotob');
+}
+
+function salvarCustoMotoboy() {
+  var ini = document.getElementById('customotob-ini').value;
+  var fim = document.getElementById('customotob-fim').value;
+  if (!ini || !fim) { alert('Informe a vigência inicial e final.'); return; }
+  if (fim < ini) { alert('A data final não pode ser anterior à data inicial.'); return; }
+  var dias = _diasSemana;
+  var editId = document.getElementById('customotob-edit-id').value;
+  var list   = db.get('customotob').slice();
+  var rec    = { id: editId ? Number(editId) : db.nextId(list), ini: ini, fim: fim };
+  dias.forEach(function(d){ rec[d.id] = parseBRVal(document.getElementById('customotob-'+d.id).value); });
+  if (editId) {
+    var idx = list.findIndex(function(x){ return x.id == editId; });
+    if (idx >= 0) list[idx] = rec; else list.push(rec);
+  } else {
+    list.push(rec);
+  }
+  db.set('customotob', list);
+  closeModal('modal-customotob');
+  renderCustoMotoboy();
+}
+
+function excluirCustoMotoboy(id) {
+  if (!confirm('Excluir esta vigência?')) return;
+  db.set('customotob', db.get('customotob').filter(function(x){ return x.id !== id; }));
+  renderCustoMotoboy();
+}
+
+function renderCustoMotoboy() {
+  var list = db.get('customotob').slice().sort(function(a,b){ return b.ini.localeCompare(a.ini); });
+  var fmtD = function(d){ return d ? d.split('-').reverse().join('/') : '—'; };
+  var dias = _diasSemana;
+  document.getElementById('tbl-customotob').innerHTML = list.length
+    ? list.map(function(r){
+        return '<tr>'
+          +'<td class="nowrap">'+fmtD(r.ini)+'</td>'
+          +'<td class="nowrap">'+fmtD(r.fim)+'</td>'
+          +dias.map(function(d){ return '<td class="nowrap">'+fmtValor(r[d.id]||0)+'</td>'; }).join('')
+          +'<td class="nowrap">'
+            +'<button class="btn btn-ghost btn-sm" onclick="openCustoMotoboy('+r.id+')">✏️</button> '
+            +'<button class="btn btn-danger btn-sm" onclick="excluirCustoMotoboy('+r.id+')">🗑</button>'
+          +'</td>'
+          +'</tr>';
+      }).join('')
+    : '<tr><td colspan="10" class="tbl-empty">Nenhuma vigência cadastrada.</td></tr>';
+}
+
+// ============================================================
 // ABERTURA DE CAIXA
 // ============================================================
 function calcTotalAbertura(){
@@ -2899,6 +3029,43 @@ function renderAberturaCaixa() {
   </div>
 </div>
 
+
+<!-- CUSTO SAÍDA MOTOBOY -->
+<div class="modal-overlay" id="modal-customotob">
+  <div class="modal" style="width:520px">
+    <div class="modal-hd">
+      <h3 id="modal-customotob-title">🛵 Nova Vigência — Custo saída Motoboy</h3>
+      <button class="modal-close" onclick="closeModal('modal-customotob')">✕</button>
+    </div>
+    <div class="modal-body">
+      <input type="hidden" id="customotob-edit-id">
+      <div class="form-row cols2">
+        <div class="fg"><label class="field-req">Vigência Inicial</label><input id="customotob-ini" type="date"></div>
+        <div class="fg"><label class="field-req">Vigência Final</label><input id="customotob-fim" type="date"></div>
+      </div>
+      <p style="font-size:12px;font-weight:700;color:#555;margin:14px 0 8px;text-transform:uppercase;letter-spacing:.6px">Valor por dia da semana (R$)</p>
+      <div class="form-row cols2">
+        <div class="fg"><label>Segunda-feira</label><input id="customotob-seg" type="text" placeholder="0,00" oninput="maskValor(this)"></div>
+        <div class="fg"><label>Terça-feira</label><input id="customotob-ter" type="text" placeholder="0,00" oninput="maskValor(this)"></div>
+      </div>
+      <div class="form-row cols2">
+        <div class="fg"><label>Quarta-feira</label><input id="customotob-qua" type="text" placeholder="0,00" oninput="maskValor(this)"></div>
+        <div class="fg"><label>Quinta-feira</label><input id="customotob-qui" type="text" placeholder="0,00" oninput="maskValor(this)"></div>
+      </div>
+      <div class="form-row cols2">
+        <div class="fg"><label>Sexta-feira</label><input id="customotob-sex" type="text" placeholder="0,00" oninput="maskValor(this)"></div>
+        <div class="fg"><label>Sábado</label><input id="customotob-sab" type="text" placeholder="0,00" oninput="maskValor(this)"></div>
+      </div>
+      <div class="form-row cols1">
+        <div class="fg"><label>Domingo</label><input id="customotob-dom" type="text" placeholder="0,00" oninput="maskValor(this)"></div>
+      </div>
+    </div>
+    <div class="modal-ft">
+      <button class="btn btn-ghost" onclick="closeModal('modal-customotob')">Cancelar</button>
+      <button class="btn btn-primary" onclick="salvarCustoMotoboy()">💾 Salvar</button>
+    </div>
+  </div>
+</div>
 
 <!-- ABERTURA DE CAIXA -->
 <div class="modal-overlay" id="modal-aberturacaixa">
