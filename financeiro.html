@@ -297,11 +297,11 @@ tbody tr:hover td{background:#fafafe}
   </div>
   <div class="sb-group">
     <div class="sb-group-label">Cadastros</div>
-    <div class="sb-item active" onclick="nav('bancos',this)"><span class="ic">🏦</span> Bancos</div>
-    <div class="sb-item" onclick="nav('fornecedores',this)"><span class="ic">🏢</span> Fornecedores</div>
-    <div class="sb-item" onclick="nav('centros',this)"><span class="ic">🏷️</span> Centro de Custo</div>
-    <div class="sb-item" onclick="nav('formas',this)"><span class="ic">💳</span> Formas de Pagamento</div>
-    <div class="sb-item" onclick="nav('customotob',this)"><span class="ic">🛵</span> Custo saída Motoboy</div>
+    <div class="sb-item active" id="nav-bancos" onclick="nav('bancos',this)"><span class="ic">🏦</span> Bancos</div>
+    <div class="sb-item" id="nav-fornecedores" onclick="nav('fornecedores',this)"><span class="ic">🏢</span> Fornecedores</div>
+    <div class="sb-item" id="nav-centros" onclick="nav('centros',this)"><span class="ic">🏷️</span> Centro de Custo</div>
+    <div class="sb-item" id="nav-formas" onclick="nav('formas',this)"><span class="ic">💳</span> Formas de Pagamento</div>
+    <div class="sb-item" id="nav-customotob" onclick="nav('customotob',this)"><span class="ic">🛵</span> Custo saída Motoboy</div>
     <div class="sb-item" id="nav-usuarios" onclick="nav('usuarios',this)" style="display:none"><span class="ic">🔐</span> Controle de Acesso</div>
   </div>
   <div class="sb-group">
@@ -311,13 +311,13 @@ tbody tr:hover td{background:#fafafe}
   </div>
   <div class="sb-group">
     <div class="sb-group-label">Relatórios</div>
-    <div class="sb-item" onclick="nav('fluxo',this)"><span class="ic">📈</span> Fluxo Projetado</div>
-    <div class="sb-item" onclick="nav('conciliacao',this)"><span class="ic">📊</span> Conciliação Bancária</div>
-    <div class="sb-item" onclick="nav('centrocusto',this)"><span class="ic">🏷️</span> Por Centro de Custo</div>
+    <div class="sb-item" id="nav-fluxo" onclick="nav('fluxo',this)"><span class="ic">📈</span> Fluxo Projetado</div>
+    <div class="sb-item" id="nav-conciliacao" onclick="nav('conciliacao',this)"><span class="ic">📊</span> Conciliação Bancária</div>
+    <div class="sb-item" id="nav-centrocusto" onclick="nav('centrocusto',this)"><span class="ic">🏷️</span> Por Centro de Custo</div>
   </div>
   <div class="sb-group">
     <div class="sb-group-label">Resultado</div>
-    <div class="sb-item" onclick="nav('dre',this)"><span class="ic">📋</span> DRE</div>
+    <div class="sb-item" id="nav-dre" onclick="nav('dre',this)"><span class="ic">📋</span> DRE</div>
   </div>
   <div class="sb-group">
     <div class="sb-group-label">Movimento caixa</div>
@@ -334,7 +334,7 @@ tbody tr:hover td{background:#fafafe}
     </div>
     <div style="padding:0 16px 14px;text-align:center;line-height:1.6">
       <div style="color:#6060a0;font-size:9px;text-transform:uppercase;letter-spacing:.6px;margin-bottom:2px">Última atualização</div>
-      <div id="app-buildts" style="color:#8080c0;font-size:11px;font-weight:600">v. 21/07/2026 23:35</div>
+      <div id="app-buildts" style="color:#8080c0;font-size:11px;font-weight:600">v. 21/07/2026 23:39</div>
     </div>
   </div>
 </nav>
@@ -1215,8 +1215,11 @@ function temAcesso(screen) {
 }
 
 function atualizarSidebar() {
-  var screens = ['bancos','fornecedores','centros','formas','customotob','receber','pagar','fluxo','conciliacao','centrocusto','dre','pedidos','aberturacaixa','fechamentocaixa','regmotoboy'];
-  screens.forEach(function(s) {
+  var allScreens = ['bancos','fornecedores','centros','formas','customotob','receber','pagar','fluxo','conciliacao','centrocusto','dre','pedidos','aberturacaixa','fechamentocaixa','regmotoboy'];
+  // Mostrar todos os grupos primeiro
+  document.querySelectorAll('.sb-group').forEach(function(g){ g.style.display = ''; });
+  // Mostrar/ocultar itens por permissão
+  allScreens.forEach(function(s) {
     var el = document.getElementById('nav-' + s);
     if (el) el.style.display = temAcesso(s) ? '' : 'none';
   });
@@ -2877,8 +2880,8 @@ function saveFbConfig() {
     var navEl = document.getElementById('nav-' + ir) || document.querySelector('.sb-item');
     nav(ir, navEl);
   } else {
-    // Mantém overlay visível; sidebar items ocultos até login
-    document.querySelectorAll('.sb-item, .sb-group').forEach(function(el){ el.style.display='none'; });
+    // Mantém overlay visível; oculta apenas os itens do menu até login
+    document.querySelectorAll('.sb-item').forEach(function(el){ el.style.display='none'; });
     renderBancos();
   }
 })();
@@ -3830,6 +3833,7 @@ function renderAberturaCaixa() {
 
 </body>
 </html>
+
 
 
 
