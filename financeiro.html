@@ -339,7 +339,7 @@ tbody tr:hover td{background:#fafafe}
     </div>
     <div style="padding:2px 14px 8px;text-align:center;line-height:1.4">
       <div style="color:#6060a0;font-size:8.5px;text-transform:uppercase;letter-spacing:.6px;margin-bottom:1px">Última atualização</div>
-      <div id="app-buildts" style="color:#8080c0;font-size:10.5px;font-weight:600">v. 22/07/2026 00:10</div>
+      <div id="app-buildts" style="color:#8080c0;font-size:10.5px;font-weight:600">v. 22/07/2026 00:14</div>
     </div>
   </div>
 </nav>
@@ -3571,13 +3571,9 @@ function _gerarSenha() {
   return senha;
 }
 
-// Abre mailto de forma confiável (evita bloqueio de popup)
+// Abre mailto de forma confiável
 function _abrirMailto(href) {
-  var a = document.createElement('a');
-  a.href = href;
-  document.body.appendChild(a);
-  a.click();
-  setTimeout(function(){ document.body.removeChild(a); }, 200);
+  window.location.href = href;
 }
 
 // Atualiza badge de solicitações pendentes no menu
@@ -4061,6 +4057,7 @@ function renderAberturaCaixa() {
 
 </body>
 </html>
+
 
 
 
