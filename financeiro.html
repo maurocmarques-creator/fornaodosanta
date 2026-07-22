@@ -13,6 +13,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;b
 .sb-logo{padding:12px 20px 10px;border-bottom:1px solid #2c2c42}
 .sb-logo .mark{font-size:16px;font-weight:700;color:#fff;letter-spacing:-.3px}
 .sb-logo .sub{font-size:9.5px;color:#6060a0;margin-top:2px;text-transform:uppercase;letter-spacing:.8px}
+body:not(.authed) .sb-group{display:none!important}
 .sb-group{padding:6px 0 2px}
 .sb-group-label{font-size:8.5px;font-weight:700;letter-spacing:1.4px;text-transform:uppercase;color:#e05c1a;padding:2px 20px 5px;border-left:3px solid #e05c1a}
 .sb-item{display:flex;align-items:center;gap:8px;padding:6px 16px;cursor:pointer;color:#8080b8;font-size:12px;font-weight:500;transition:.12s;border-left:3px solid transparent;user-select:none}
@@ -337,7 +338,7 @@ tbody tr:hover td{background:#fafafe}
     </div>
     <div style="padding:2px 14px 8px;text-align:center;line-height:1.4">
       <div style="color:#6060a0;font-size:8.5px;text-transform:uppercase;letter-spacing:.6px;margin-bottom:1px">Última atualização</div>
-      <div id="app-buildts" style="color:#8080c0;font-size:10.5px;font-weight:600">v. 21/07/2026 23:52</div>
+      <div id="app-buildts" style="color:#8080c0;font-size:10.5px;font-weight:600">v. 21/07/2026 23:55</div>
     </div>
   </div>
 </nav>
@@ -968,7 +969,7 @@ tbody tr:hover td{background:#fafafe}
 </div>
 
 <!-- ========== MODAL SOLICITAR ACESSO ========== -->
-<div class="modal-overlay" id="modal-solicitar">
+<div class="modal-overlay" id="modal-solicitar" style="z-index:10001">
   <div class="modal" style="width:min(400px,96vw)">
     <div class="modal-hd"><h3>📋 Solicitar Acesso</h3><button class="modal-close" onclick="closeModal('modal-solicitar')">✕</button></div>
     <div class="modal-body">
@@ -994,7 +995,7 @@ tbody tr:hover td{background:#fafafe}
 </div>
 
 <!-- ========== MODAL PRIMEIRO ACESSO — TROCAR SENHA ========== -->
-<div class="modal-overlay" id="modal-trocar-senha">
+<div class="modal-overlay" id="modal-trocar-senha" style="z-index:10001">
   <div class="modal" style="width:min(380px,96vw)">
     <div class="modal-hd"><h3>🔑 Defina sua nova senha</h3></div>
     <div class="modal-body">
@@ -1297,9 +1298,11 @@ function mostrarTopbarUser() {
     nome.textContent = _sessao.nome;
     pill.style.display = '';
     btn.style.display  = '';
+    document.body.classList.add('authed');
   } else {
     pill.style.display = 'none';
     btn.style.display  = 'none';
+    document.body.classList.remove('authed');
   }
 }
 
@@ -4011,6 +4014,7 @@ function renderAberturaCaixa() {
 
 </body>
 </html>
+
 
 
 
