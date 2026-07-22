@@ -3002,6 +3002,64 @@ function excluirRegistroMotoboy(id) {
   renderRegistroMotoboy();
 }
 
+function fecharRegistroMotoboy(id) {
+  var r = db.get('regmotoboy').find(function(x){ return x.id === id; });
+  if (!r) return;
+
+  // Calcular entregas ao vivo
+  var pedidosDia = db.get('pedidos').filter(function(p){
+    return p.data === r.data && String(p.entregador) === String(r.motoboy);
+  });
+  var qtdE  = pedidosDia.length;
+  var vlE   = pedidosDia.reduce(function(s,p){ return s+(p.valorEntrega||0); }, 0);
+  var total = (r.diaria||0) + vlE;
+
+  // Centro de custo Motoboy
+  var centroMoto = db.get('centros').find(function(c){
+    return c.descricao && c.descricao.toLowerCase().indexOf('motoboy') >= 0;
+  });
+  var centroId = centroMoto ? String(centroMoto.id) : '';
+
+  // Forma PIX
+  var formaPix = db.get('formas').find(function(f){
+    return f.nome && f.nome.toLowerCase().indexOf('pix') >= 0;
+  });
+  var formaId = formaPix ? String(formaPix.id) : '';
+
+  // Formatar datas
+  var parts    = r.data.split('-');
+  var ddmmyyyy = parts[2]+'/'+parts[1]+'/'+parts[0];
+  var mmyyyy   = parts[1]+'/'+parts[0];
+
+  var obs = qtdE + ' pedido(s) entregue(s) — Motoboy: ' + (db.get('fornecedores').find(function(f){return f.id==r.motoboy;})||{}).nome;
+
+  // Abrir modal Contas a Pagar (novo lançamento)
+  openLancamento('pagar');
+
+  // Preencher campos após inicialização do modal
+  setTimeout(function(){
+    document.getElementById('lanc-emissao').value    = ddmmyyyy;
+    document.getElementById('lanc-vencimento').value = ddmmyyyy;
+    document.getElementById('lanc-comp').value       = mmyyyy;
+    document.getElementById('lanc-valor').value      = fmtValor(total);
+    document.getElementById('lanc-obs').value        = obs;
+    var obsCount = document.getElementById('obs-count');
+    if (obsCount) obsCount.textContent = obs.length + '/200';
+    if (centroId) document.getElementById('lanc-centro').value = centroId;
+    if (formaId)  {
+      var sfL = document.getElementById('lanc-forma');
+      sfL.innerHTML = '<option value="">— Selecione —</option>'
+        + db.get('formas').filter(function(f){return f.ativo;})
+            .map(function(f){return '<option value="'+f.id+'">'+f.nome+'</option>';}).join('');
+      sfL.value = formaId;
+    }
+    ssInit('ss-forn-wrap',
+      fornSorted().filter(function(f){return f.ativo;}).map(function(f){return {value:f.id,label:f.nome};}),
+      r.motoboy
+    );
+  }, 60);
+}
+
 function renderRegistroMotoboy() {
   var list    = db.get('regmotoboy').slice().sort(function(a,b){ return b.data.localeCompare(a.data)||b.entrada.localeCompare(a.entrada); });
   var pedidos = db.get('pedidos'); // sempre ao vivo
@@ -3034,6 +3092,7 @@ function renderRegistroMotoboy() {
           +'<td class="nowrap fw7" style="color:#e05c1a">'+fmtValor(total)+'</td>'
           +'<td>'+stBadge(r.status)+'</td>'
           +'<td class="nowrap">'
+            +'<button class="btn btn-sm" style="background:#e05c1a;color:#fff;border:none" onclick="fecharRegistroMotoboy('+r.id+')">🔒 Fechar</button> '
             +'<button class="btn btn-ghost btn-sm" onclick="openRegistroMotoboy('+r.id+')">✏️</button> '
             +'<button class="btn btn-danger btn-sm" onclick="excluirRegistroMotoboy('+r.id+')">🗑</button>'
           +'</td>'
