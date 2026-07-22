@@ -2668,6 +2668,7 @@ function salvarPedido() {
   db.set('pedidos', list);
   closeModal('modal-pedido');
   renderPedidos();
+  if (_cur === 'regmotoboy') renderRegistroMotoboy();
 }
 
 function excluirPedido(id) {
@@ -3002,32 +3003,42 @@ function excluirRegistroMotoboy(id) {
 }
 
 function renderRegistroMotoboy() {
-  var list  = db.get('regmotoboy').slice().sort(function(a,b){ return b.data.localeCompare(a.data)||b.entrada.localeCompare(a.entrada); });
-  var forn  = db.get('fornecedores');
+  var list    = db.get('regmotoboy').slice().sort(function(a,b){ return b.data.localeCompare(a.data)||b.entrada.localeCompare(a.entrada); });
+  var pedidos = db.get('pedidos'); // sempre ao vivo
+  var forn    = db.get('fornecedores');
   var nomeMoto = function(id){ var f=forn.find(function(x){return x.id==id;}); return f?f.nome:'—'; };
-  var fmtD  = function(d){ return d ? d.split('-').reverse().join('/') : '—'; };
+  var fmtD    = function(d){ return d ? d.split('-').reverse().join('/') : '—'; };
   var stBadge = function(s){ return s==='Pago'
     ? '<span class="badge b-green">Pago</span>'
     : '<span class="badge b-yellow">Em aberto</span>'; };
   document.getElementById('tbl-regmotoboy').innerHTML = list.length
-    ? list.map(function(r){ return '<tr>'
-        +'<td class="nowrap">'+fmtD(r.data)+'</td>'
-        +'<td>'+r.dia+'</td>'
-        +'<td class="fw7">'+nomeMoto(r.motoboy)+'</td>'
-        +'<td class="nowrap">'+(r.entrada||'—')+'</td>'
-        +'<td class="nowrap">'+(r.saida||'—')+'</td>'
-        +'<td class="nowrap">'+fmtValor(r.horas||0)+'h</td>'
-        +'<td class="nowrap">'+fmtValor(r.vlHora||0)+'</td>'
-        +'<td class="nowrap fw7">'+fmtValor(r.diaria||0)+'</td>'
-        +'<td style="text-align:center">'+(r.qtdEntregas||0)+'</td>'
-        +'<td class="nowrap">'+fmtValor(r.vlEntregas||0)+'</td>'
-        +'<td class="nowrap fw7" style="color:#e05c1a">'+fmtValor(r.total||0)+'</td>'
-        +'<td>'+stBadge(r.status)+'</td>'
-        +'<td class="nowrap">'
-          +'<button class="btn btn-ghost btn-sm" onclick="openRegistroMotoboy('+r.id+')">✏️</button> '
-          +'<button class="btn btn-danger btn-sm" onclick="excluirRegistroMotoboy('+r.id+')">🗑</button>'
-        +'</td>'
-      +'</tr>'; }).join('')
+    ? list.map(function(r){
+        // recalcular entregas ao vivo
+        var entregas = pedidos.filter(function(p){
+          return p.data === r.data && String(p.entregador) === String(r.motoboy);
+        });
+        var qtdE  = entregas.length;
+        var vlE   = entregas.reduce(function(s,p){ return s+(p.valorEntrega||0); }, 0);
+        var total = (r.diaria||0) + vlE;
+        return '<tr>'
+          +'<td class="nowrap">'+fmtD(r.data)+'</td>'
+          +'<td>'+r.dia+'</td>'
+          +'<td class="fw7">'+nomeMoto(r.motoboy)+'</td>'
+          +'<td class="nowrap">'+(r.entrada||'—')+'</td>'
+          +'<td class="nowrap">'+(r.saida||'—')+'</td>'
+          +'<td class="nowrap">'+fmtValor(r.horas||0)+'h</td>'
+          +'<td class="nowrap">'+fmtValor(r.vlHora||0)+'</td>'
+          +'<td class="nowrap fw7">'+fmtValor(r.diaria||0)+'</td>'
+          +'<td style="text-align:center">'+qtdE+'</td>'
+          +'<td class="nowrap">'+fmtValor(vlE)+'</td>'
+          +'<td class="nowrap fw7" style="color:#e05c1a">'+fmtValor(total)+'</td>'
+          +'<td>'+stBadge(r.status)+'</td>'
+          +'<td class="nowrap">'
+            +'<button class="btn btn-ghost btn-sm" onclick="openRegistroMotoboy('+r.id+')">✏️</button> '
+            +'<button class="btn btn-danger btn-sm" onclick="excluirRegistroMotoboy('+r.id+')">🗑</button>'
+          +'</td>'
+          +'</tr>';
+      }).join('')
     : '<tr><td colspan="13" class="tbl-empty">Nenhum registro cadastrado.</td></tr>';
 }
 
