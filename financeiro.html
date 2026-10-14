@@ -1366,10 +1366,13 @@ function fazerLogin() {
   var senha = document.getElementById('login-senha').value || '';
   var errEl = document.getElementById('login-err');
   errEl.style.display = 'none';
+  // Garante que o admin sempre existe (pode ter sido limpo por sync do Firebase)
+  _seedAdmin();
   var users = db.get('usuarios');
   var user  = users.find(function(u){ return u.email.toLowerCase() === email && u.senha === senha && u.ativo !== 0; });
   if (!user) {
-    errEl.style.display = '';
+    errEl.textContent = 'E-mail ou senha incorretos. (' + users.length + ' usuário(s) cadastrado(s))';
+    errEl.style.display = 'block';
     document.getElementById('login-senha').value = '';
     return;
   }
