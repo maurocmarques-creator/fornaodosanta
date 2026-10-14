@@ -1318,12 +1318,20 @@ function seed() {
 var _sessao = null;
 
 function _seedAdmin() {
+  // Garante admin no cache e no localStorage (independente de Firebase)
   var users = db.get('usuarios');
-  var adminExists = users.find(function(u){ return u.email === 'mauro.cesar@portoex.com.br'; });
+  var adminExists = users.find(function(u){ return u.email.toLowerCase() === 'mauro.cesar@portoex.com.br'; });
   if (!adminExists) {
     users = users.slice();
-    users.push({ id: db.nextId(users), nome: 'Mauro', email: 'mauro.cesar@portoex.com.br', senha: '251177', perfil: 'admin', ativo: 1, permissoes: [] });
-    db.set('usuarios', users);
+    var adminUser = { id: db.nextId(users), nome: 'Mauro', email: 'mauro.cesar@portoex.com.br', senha: '251177', perfil: 'admin', ativo: 1, permissoes: [] };
+    users.push(adminUser);
+    _cache['usuarios'] = users;
+    // Salva no localStorage SEMPRE (fallback offline)
+    try { localStorage.setItem(K['usuarios'], JSON.stringify(users)); } catch(e) {}
+    // Salva no Firebase se disponível
+    if (_fsdb) {
+      _fsdb.collection('pizzaos').doc('dados').set({ usuarios: users }, { merge: true }).catch(console.error);
+    }
   }
 }
 
@@ -1369,6 +1377,7 @@ function fazerLogin() {
   // Garante que o admin sempre existe (pode ter sido limpo por sync do Firebase)
   _seedAdmin();
   var users = db.get('usuarios');
+  console.log('[Login] usuarios no cache:', users.length, users.map(function(u){return u.email;}));
   var user  = users.find(function(u){ return u.email.toLowerCase() === email && u.senha === senha && u.ativo !== 0; });
   if (!user) {
     errEl.textContent = 'E-mail ou senha incorretos. (' + users.length + ' usuário(s) cadastrado(s))';
